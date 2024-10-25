@@ -1,3 +1,6 @@
-*.txt
-*bat
+*.bat
 .idea
+
+*.weights
+testImages
+database

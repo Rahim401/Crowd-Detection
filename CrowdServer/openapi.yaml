@@ -1,0 +1,120 @@
+openapi: 3.0.0
+info:
+  title: CrowdDetection API
+  version: 1.0.0
+  description: An API for managing locations and crowd data.
+servers:
+  - url: http://localhost:5000
+    description: Development Server
+
+paths:
+  /getLocations:
+    get:
+      summary: Get all locations
+      description: Returns a list of all available locations.
+      responses:
+        200:
+          description: A list of locations.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  allLocations:
+                    type: array
+                    items:
+                      type: string
+
+  /createLocation:
+    post:
+      summary: Create a new location
+      description: Adds a new place and address to the locations list.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                place:
+                  type: string
+                address:
+                  type: string
+      responses:
+        200:
+          description: Location created successfully.
+        409:
+          description: Location already exists.
+
+  /postCrowdAt:
+    post:
+      summary: Add a crowd record
+      description: Adds a new crowd record for a specific location at a given time.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                fromMail:
+                  type: string
+                atLocation:
+                  type: string
+                atTime:
+                  type: string
+                  format: date-time
+                image:
+                  type: string
+                  format: binary
+                crowdAt:
+                  type: integer
+                message:
+                  type: string
+      responses:
+        200:
+          description: Crowd data added successfully.
+        500:
+          description: Error adding crowd data.
+
+  /getEstimation:
+    get:
+      summary: Get crowd estimation
+      description: Returns an estimation of the crowd for a given time and location.
+      parameters:
+        - name: fromMail
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: atLocation
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: atTime
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        200:
+          description: Estimation found and returned.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  resCode:
+                    type: integer
+                  message:
+                    type: array
+                    items:
+                      type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+        404:
+          description: No estimation found.
