@@ -1,11 +1,8 @@
 package com.crowd.client.ui.pages.startFrag
 
-import android.graphics.Color
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,7 +17,7 @@ import com.crowd.client.ui.pages.mainPage.components.Background
 import com.crowd.client.ui.theme.CrowdClientTheme
 
 @Composable
-fun StartFrag(modifier: Modifier = Modifier) {
+fun StartFrag(modifier: Modifier = Modifier, onEnter: () -> Unit = {}) {
     Column(modifier, Arrangement.SpaceBetween) {
         Text(
             "Crowd Density Estimation",
@@ -34,7 +31,8 @@ fun StartFrag(modifier: Modifier = Modifier) {
         AppButton(
             text = "Enter",
             Modifier.align(Alignment.CenterHorizontally)
-                .padding(bottom = 100.dp)
+                .padding(bottom = 100.dp),
+            onClick = onEnter
         )
     }
 }
