@@ -25,6 +25,7 @@ class MainActivity : ComponentActivity() {
                     Modifier.fillMaxSize(), viewModel.onFragment,
                     viewModel.isWaitingForResult,
                     viewModel.isEstimationSuccessful,
+                    viewModel.estimationResult,
                     onAction = { viewModel.handelAction(it, this) }
                 )
             }

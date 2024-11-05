@@ -12,16 +12,20 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import com.crowd.client.EnterApp
+import com.crowd.client.EstResultState
 import com.crowd.client.Fragment
 import com.crowd.client.GetEstimation
 import com.crowd.client.GoBack
+import com.crowd.client.MainVM
 import com.crowd.client.SaveUser
 import com.crowd.client.UiAction
 import com.crowd.client.ui.pages.mainPage.components.Background
+import com.crowd.client.ui.pages.resultFrag.EstimationFrag
+import com.crowd.client.ui.pages.startFrag.LoadingFrag
 import com.crowd.client.ui.pages.startFrag.QueryFrag
-import com.crowd.client.ui.pages.startFrag.ResultFrag
 import com.crowd.client.ui.pages.startFrag.StartFrag
 import com.crowd.client.ui.pages.startFrag.UserFrag
 import com.crowd.client.ui.theme.CrowdClientTheme
@@ -32,6 +36,7 @@ fun MainPage(
     onFragment: Fragment = Fragment.UserFrag,
     isWaitingForResult: Boolean = true,
     isEstimationSuccessful: Boolean = false,
+    estimationResult: EstResultState? = null,
     onAction: (UiAction) -> Unit = {}
 ) {
     Box(modifier) {
@@ -59,10 +64,17 @@ fun MainPage(
                         onAction(GetEstimation(place, date, time))
                     }
 
-                    Fragment.LoadingFrag -> ResultFrag(
+                    Fragment.LoadingFrag -> LoadingFrag(
                         Modifier.fillMaxSize(), isWaitingForResult,
                         isEstimationSuccessful
                     ) { onAction(GoBack) }
+
+                    Fragment.ResultPage -> if(estimationResult != null)
+                        EstimationFrag(
+                            Modifier.fillMaxSize(), estimationResult.picData,
+                            estimationResult.crowdIs, estimationResult.timeToGo,
+                            estimationResult.leastCrowdAt
+                        ) { onAction(GoBack) }
                 }
             }
         }
@@ -72,7 +84,17 @@ fun MainPage(
 @Preview
 @Composable
 private fun Preview() {
+    val context = LocalContext.current
+    val viewModel = MainVM()
+    viewModel.initializeModel(context)
+
     CrowdClientTheme {
-        MainPage()
+        MainPage(
+            Modifier.fillMaxSize(), viewModel.onFragment,
+            viewModel.isWaitingForResult,
+            viewModel.isEstimationSuccessful,
+            viewModel.estimationResult,
+            onAction = { viewModel.handelAction(it, context) }
+        )
     }
 }

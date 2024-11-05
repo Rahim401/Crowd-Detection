@@ -25,7 +25,7 @@ import com.crowd.client.ui.pages.mainPage.components.Background
 import com.crowd.client.ui.theme.CrowdClientTheme
 
 @Composable
-fun ResultFrag(
+fun LoadingFrag(
     modifier: Modifier = Modifier,
     isLoading: Boolean = true,
     isSuccessful: Boolean = false,
@@ -81,7 +81,7 @@ fun ResultFrag(
                     textAlign = TextAlign.Center,
                 )
             }
-            AppButton(
+            if(!isSuccessful) AppButton(
                 text = "Go Back",
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -98,7 +98,7 @@ private fun Preview() {
     CrowdClientTheme {
         Background(Modifier.fillMaxSize())
         Box(Modifier.fillMaxSize()) {
-            ResultFrag(
+            LoadingFrag(
                 Modifier.fillMaxSize(), true,
                 true
             )
