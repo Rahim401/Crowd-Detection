@@ -1,17 +1,14 @@
-package com.crowd.client
+package com.crowd.client.utils.android
 
 import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences.Editor
 import android.net.Uri
-import android.os.Build
 import android.widget.Toast
 import androidx.annotation.StringRes
-import androidx.compose.ui.text.capitalize
-import androidx.compose.ui.text.intl.Locale
+
 
 fun Context.goToLink(link: String) {
     if(link.isBlank()) return
@@ -74,26 +71,3 @@ fun Context.makeToast(@StringRes message: Int, isShort:Boolean = true) = Toast.m
     if(isShort) Toast.LENGTH_SHORT
     else Toast.LENGTH_LONG
 ).show()
-
-fun Editor.putObject(key: String, value: Any?): Editor {
-    when(value) {
-        is Boolean -> putBoolean(key, value)
-        is Int -> putInt(key, value)
-        is Float -> putFloat(key, value)
-        is Long -> putLong(key, value)
-        is String -> putString(key, value)
-        is Enum<*> -> putInt(key, value.ordinal)
-        is Collection<*> -> putStringSet(
-            key, value.filterIsInstance<String>()
-                .toSet()
-        )
-    }
-    return this
-}
-
-fun getDeviceName(): String {
-    val manufacturer = Build.MANUFACTURER
-    val model = Build.MODEL
-    return if(model.startsWith(manufacturer)) model.capitalize(Locale.current)
-    else manufacturer.capitalize(Locale.current) + " " + model
-}

@@ -6,7 +6,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.crowd.client.application.AppData
+import com.crowd.client.application.MainApplication
+import com.crowd.client.application.Query
+import com.crowd.client.application.User
 import com.crowd.client.ui.pages.resultFrag.PicOfPlace
+import com.crowd.client.utils.android.makeToast
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -20,10 +25,7 @@ enum class Fragment {
 
 sealed class UiAction
 data object EnterApp: UiAction()
-data class SaveUser(
-    val userName: String,
-    val userMail: String
-): UiAction()
+data class SaveUser(val user: User): UiAction()
 data class GetEstimation(
     val location: String,
     val atDate: Long?,
@@ -38,8 +40,8 @@ data class EstResultState(
     val leastCrowdAt: String = "9am",
 )
 
-class MainVM: ViewModel() {
-    fun initializeModel(context: Context) {
+class MainVM: ViewModel(), MainApplication.AppCompanion {
+    override fun initialize(context: Context) {
 
     }
 
@@ -51,18 +53,21 @@ class MainVM: ViewModel() {
     var isEstimationSuccessful by mutableStateOf(false); private set
     var estimationResult: EstResultState? by mutableStateOf(null); private set
 
-
+    fun checkAndLog() {
+        onFragment = if (!AppData.isLoggedIn)
+            Fragment.UserFrag else Fragment.QueryFrag
+    }
     fun handelAction(action: UiAction, context: Context?) {
 //        println("\nonAction Called($action) at ${System.currentTimeMillis()}")
         when(action) {
-            is EnterApp -> if(onFragment == Fragment.StartFrag)
-                onFragment = Fragment.UserFrag
+            is EnterApp -> if(onFragment == Fragment.StartFrag) checkAndLog()
             is SaveUser -> if(onFragment == Fragment.UserFrag) when {
-                action.userName.isBlank() -> context?.makeToast("Name is Blank!")
-                action.userMail.isBlank() -> context?.makeToast("Email is Blank!")
+                action.user.name.isBlank() -> context?.makeToast("Name is Blank!")
+                action.user.email.isBlank() -> context?.makeToast("Email is Blank!")
                 else -> {
                     // Save user
-                    onFragment = Fragment.QueryFrag
+                    AppData.user = action.user
+                    checkAndLog()
                 }
             }
             is GetEstimation -> if(onFragment == Fragment.QueryFrag) when {
@@ -78,6 +83,7 @@ class MainVM: ViewModel() {
                         queryDate.year, queryDate.month, queryDate.day,
                         action.atTime.first, action.atTime.second, 0
                     )
+                    val query = Query(action.location, queryDateTime.timeInMillis)
 
                     // Send of queryDateTime to server and onResult
                     coScope.launch {
@@ -106,8 +112,7 @@ class MainVM: ViewModel() {
                     }
                 }
             }
-            is GoBack -> //if(onFragment == Fragment.LoadingFrag)
-                onFragment = Fragment.QueryFrag
+            is GoBack -> checkAndLog()
         }
     }
 

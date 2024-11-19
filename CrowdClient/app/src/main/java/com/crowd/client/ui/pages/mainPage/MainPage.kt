@@ -22,6 +22,7 @@ import com.crowd.client.GoBack
 import com.crowd.client.MainVM
 import com.crowd.client.SaveUser
 import com.crowd.client.UiAction
+import com.crowd.client.application.User
 import com.crowd.client.ui.pages.mainPage.components.Background
 import com.crowd.client.ui.pages.resultFrag.EstimationFrag
 import com.crowd.client.ui.pages.startFrag.LoadingFrag
@@ -57,7 +58,8 @@ fun MainPage(
                     }
 
                     Fragment.UserFrag -> UserFrag(formFragMod) { name, mail ->
-                        onAction(SaveUser(name, mail))
+                        val user = User(name, mail)
+                        onAction(SaveUser(user))
                     }
 
                     Fragment.QueryFrag -> QueryFrag(formFragMod) { place, date, time ->
@@ -86,7 +88,7 @@ fun MainPage(
 private fun Preview() {
     val context = LocalContext.current
     val viewModel = MainVM()
-    viewModel.initializeModel(context)
+    viewModel.initialize(context)
 
     CrowdClientTheme {
         MainPage(
