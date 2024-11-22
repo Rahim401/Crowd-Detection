@@ -95,13 +95,12 @@ class CrowdDetector:
             cv2.putText(image, label, (x - 10, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
         return image
 
-# Write an FlaskRestApi based python server running in port 16420, Which will contains an database folder, with Various locations as Subfolders, with an db.pk an pickel file, where we store de
+crowdDetector = CrowdDetector()
 if __name__ == "__main__":
-    detector = CrowdDetector()
     image = cv2.imread(f"{os.getcwd()}/testImages/WhatsApp Image 2024-10-21 at 22.10.37 (1).jpeg")
     if image is not None:
-        det = detector.detect(image)
-        res = detector.drawDetections(image, det)
+        det = crowdDetector.detect(image)
+        res = crowdDetector.drawDetections(image, det)
         cv2.imshow(f"Crowd count: {len(det)}", res)
         cv2.waitKey(0)
         cv2.destroyAllWindows()

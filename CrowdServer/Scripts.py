@@ -1,4 +1,6 @@
 import random
+from PIL import Image
+# from cv2 import imread
 from datetime import datetime, timedelta
 from CrowdServer import DataManager
 
@@ -41,20 +43,23 @@ def insertMockData(database, recordCount=5000):
         randomTime = datetime.now() - timedelta(days=randomDays, minutes=randomMinutes)
 
         # Insert the record into the Record table
-        database.insertRecord(
-            location,
-            randomTime.strftime("%Y-%m-%d %H:%M:%S"),
-            fromEmail,
-            message,
-            crowdCount
-        )
+        database.insertRecord(location, randomTime.strftime("%Y-%m-%d %H:%M:%S"), fromEmail, message, "", crowdCount)
 
 if __name__ == "__main__":
     dataManager = DataManager()
 
-    # Insert mock data
+    # dataManager.insertRecord(
+    #     "Jayanagar4", "2014-10-20 10:10:17", "hrahim401",
+    #     "Hi Da", "fuck", 21
+    # )
+    # # Insert mock data
     # insertMockLocation(dataManager)
-    # insertMockData(dataManager, 10000)
+    # insertMockData(dataManager, 100)
+
+    dataManager.insertRecordFromPhoto(
+        "Jayanagar", "2014-10-25 10:10:20", "hrahim401",
+        "Hi Da", Image.open("/media/rahim401/DevStuffs/Some Projects/Crowd Detection Exp/CrowdServer/WhatsApp Image 2024-10-21 at 22.10.37.jpeg")
+    )
 
     # for (place, _) in places:
     #     print(dataManager.getAvgCrowdOf(place))

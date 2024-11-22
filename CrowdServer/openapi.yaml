@@ -64,7 +64,7 @@ paths:
                 atTime:
                   type: string
                   format: date-time
-                image:
+                photo:
                   type: string
                   format: binary
                 crowdAt:
@@ -118,3 +118,40 @@ paths:
                       type: object
         404:
           description: No estimation found.
+
+  /getPhotoNear:
+    get:
+      summary: Get photo and crowd data near a specific time
+      parameters:
+        - in: query
+          name: atLocation
+          schema:
+            type: string
+          required: true
+          description: The location to search for.
+        - in: query
+          name: atTime
+          schema:
+            type: integer
+          required: true
+          description: The timestamp (in milliseconds) before which to search for records.
+      responses:
+        200:
+          description: Successful response with the photo, time, and crowd count.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  photo:
+                    type: string
+                    format: binary
+                    description: Base64-encoded image.
+                  atTime:
+                    type: integer
+                    description: The timestamp of the retrieved record.
+                  crowdAt:
+                    type: integer
+                    description: The number of people detected in the image.
+        404:
+          description: No matching record found.
