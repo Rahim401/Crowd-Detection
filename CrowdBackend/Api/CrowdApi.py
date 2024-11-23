@@ -1,6 +1,6 @@
 import base64
 import requests
-from datetime import datetime as dt
+from datetime import datetime as dt, timedelta
 from CrowdBackend.Utils import Colors, time2Str
 
 BASE_URL = "http://127.0.0.1:5000"
@@ -70,24 +70,23 @@ class CrowdApi:
         return result
 
     # /getEstimation (GET)
-    def getEstimation(self, atLocation, atTime, fromMail="noUser@crowd.com"):
+    def getEstimation(self, atLocation, atTime):
         if isinstance(atTime, dt): atTime = time2Str(atTime)
         return requests.get(f"{self.baseUrl}/getEstimation", params={
-            "atLocation": atLocation, "atTime": atTime,
-            "fromMail": fromMail
+            "atLocation": atLocation, "atTime": atTime
         })
     def getEstimationRes(
-            self, atLocation, atTime, fromMail="noUser@crowd.com",
+            self, atLocation, atTime,
             verbose=VerboseByDefault, *args, **kwargs
     ):
         try:
-            response = self.getEstimation(atLocation, atTime, fromMail)
+            response = self.getEstimation(atLocation, atTime)
             result = response.status_code, response.json()
         except Exception as e: result = -1, e
         if verbose:
             if "title" not in kwargs: kwargs["title"] = "GetEstimation"
             if "expCodes" not in kwargs: kwargs["expCodes"] = (200, 206)
-            kwargs.update(atLocation=atLocation, atTime=atTime, fromMail=fromMail)
+            kwargs.update(atLocation=atLocation, atTime=atTime)
             logApi("/getEstimation",  result, *args, **kwargs)
         return result
 
@@ -106,6 +105,29 @@ class CrowdApi:
             if "expCodes" not in kwargs: kwargs["expCodes"] = (200, )
             kwargs.update(atLocation=atLocation, atTime=atTime, recordWith=recordWith)
             logApi("/getPhotoNear",  result, *args, **kwargs)
+        return result
+
+
+    # /getCrowdSeq (GET)
+    def getCrowdSeq(self, atLocation, atTime, noOfSeq=4):
+        if isinstance(atTime, dt): atTime = time2Str(atTime)
+        return requests.get(f"{self.baseUrl}/getCrowdSeq", params={
+            "atLocation": atLocation, "atTime": atTime,
+            "noOfSeq": noOfSeq
+        })
+    def getCrowdSeqRes(
+            self, atLocation, atTime, noOfSeq=4,
+            verbose=VerboseByDefault, *args, **kwargs
+    ):
+        try:
+            response = self.getCrowdSeq(atLocation, atTime, noOfSeq)
+            result = response.status_code, response.json()
+        except Exception as e: result = -1, e
+        if verbose:
+            if "title" not in kwargs: kwargs["title"] = "GetCrowdSeq"
+            if "expCodes" not in kwargs: kwargs["expCodes"] = (200, 206, 222, 400, 404, 500)
+            kwargs.update(atLocation=atLocation, atTime=atTime, noOfSeq=noOfSeq)
+            logApi("/getCrowdSeq",  result, *args, **kwargs)
         return result
 
 # Helper to pretty print responses
@@ -147,4 +169,11 @@ def logApi(endpoint, result, *args, **kwargs):
 
 if __name__ == '__main__':
     api = CrowdApi()
-    api.createLocationRes("Miami", "Florida, USA", expCodes=482)
+    # api.createLocationRes("Miami", "Florida, USA", expCodes=482)
+    location = "Domlur"
+    time = dt.fromisoformat("2024-10-14 10:00:00")
+    status, data = api.getCrowdSeqRes(location, time, 50)
+    crowdAtSeq = data["crowdAtSeq"]
+    for res in crowdAtSeq:
+        print(time, *res[2:], res[0], sep=", ")
+        time += timedelta(seconds=1800)

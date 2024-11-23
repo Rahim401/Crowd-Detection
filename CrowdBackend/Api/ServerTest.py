@@ -114,10 +114,6 @@ class ServerTester(CrowdApi):
                 locInServer, "", fromMail,
                 title="On No Time", expCodes=400
             )
-            self.getEstimationRes(
-                locInServer, time2Str(dt.now()), "",
-                title="On No Mail", expCodes=400
-            )
         if areasNotInServer:
             self.getEstimationRes(
                 choice(areasNotInServer), atTime, fromMail,
@@ -133,7 +129,7 @@ class ServerTester(CrowdApi):
         print(f"\n{Colors.Blue}Testing /getGetPhotoNear{Colors.White}")
         areasInServer = self.getLocationInServer()
         areasNotInServer = list(AreasInBangalore.difference(areasInServer))
-        fromMail, atLoc, atTime = "test@example.com", "", time2Str(dt.now())
+        atLoc, atTime = "", time2Str(dt.now())
 
         if areasInServer:
             locInServer = choice(areasInServer)
@@ -163,7 +159,38 @@ class ServerTester(CrowdApi):
                 title="On Invalid Location", expCodes=404
             )
         self.getPhotoNearRes(
-            "", time2Str(dt.now()), fromMail,
+            "", time2Str(dt.now()),
+            title="On No Location", expCodes=400
+        )
+
+    # Test /getCrowdSeq (GET)
+    def testGetCrowdSeq(self):
+        print(f"\n{Colors.Blue}Testing /getCrowdSeq{Colors.White}")
+        areasInServer = self.getLocationInServer()
+        areasNotInServer = list(AreasInBangalore.difference(areasInServer))
+        atLoc, atTime = "", time2Str(dt.now())
+
+        if areasInServer:
+            locInServer = choice(areasInServer)
+            self.getCrowdSeqRes(
+                locInServer, time2Str(dt.now()), 10,
+                title="On Proper Inputs", expCodes=(200, 206, 222)
+            )
+            self.getCrowdSeqRes(
+                locInServer, time2Str(dt.now()-timedelta(hours=500)), 3,
+                title="On Proper Inputs With old data", expCodes=(200, 206, 222)
+            )
+            self.getCrowdSeqRes(
+                locInServer, "",
+                title="On No Time", expCodes=400
+            )
+        if areasNotInServer:
+            self.getCrowdSeqRes(
+                choice(areasNotInServer), atTime,
+                title="On Invalid Location", expCodes=404
+            )
+        self.getCrowdSeqRes(
+            "", time2Str(dt.now()),
             title="On No Location", expCodes=400
         )
 
@@ -173,6 +200,7 @@ class ServerTester(CrowdApi):
         self.testPostCrowdAt()
         self.testGetEstimation()
         self.testGetPhotoNear()
+        self.testGetCrowdSeq()
 
 
 

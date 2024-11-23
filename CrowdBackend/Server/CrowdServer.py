@@ -104,9 +104,8 @@ class GetEstimation(Resource):
             args = request.args
             atLocation = args.get('atLocation')
             atTime = args.get('atTime')
-            fromMail = args.get('fromMail')
 
-            if not all([atLocation, atTime, fromMail]):
+            if not all([atLocation, atTime]):
                 return response(400, error="Some inputs are missing!")
             # if not dataManager.isLocationIn(atLocation):
             #     return response(404, error="Location not found!")
@@ -117,7 +116,7 @@ class GetEstimation(Resource):
             if result[0] < 0:
                 if result[0] == -1: status, error = 400, "No Proper Input!"
                 elif result[0] == -2: status, error = 404, "Unavailable Location!"
-                elif result[0] == -10: status, error = 500, f"Error on Query!(${result[2]})"
+                elif result[0] == -10: status, error = 500, f"Error on Query!(${result[1]})"
             else:
                 resCode, avgCrowd, avgCrowdOn4Hrs, lowCrowdAt, crownOnN4Hrs = result
                 atTimeInTime = str2Time(atTime)
@@ -160,7 +159,7 @@ class GetPhotoNear(Resource):
             if result[0] < 0:
                 if result[0] == -1: status, error = 400, "No Proper Input!"
                 elif result[0] == -2: status, error = 404, "Location Unavailable!"
-                elif result[0] == -10: status, error = 500, f"Error on Query!(${result[2]})"
+                elif result[0] == -10: status, error = 500, f"Error on Query!(${result[1]})"
             elif result[0] == 0: status, message = 222, "Have No enough information Given Location!"
             else:
                 encodedPhoto = None
@@ -182,6 +181,54 @@ class GetPhotoNear(Resource):
             return response(500, error=str(e))
 
 
+# Resource for /getPhotoNear (GET)
+class GetCrowdSeq(Resource):
+    def get(self):
+        try:
+            args = request.args
+            atLocation = args.get('atLocation')
+            atTime = args.get('atTime')
+            noOfSeq = int(args.get('noOfSeq'))
+            if not noOfSeq: noOfSeq = 1
+
+            # print(atLocation, atTime, noOfSeq)
+            if not all([atLocation, atTime, noOfSeq]):
+                return fixAndRespond(400, error="Some inputs are missing!")
+            if not dataManager.isLocationIn(atLocation):
+                return response(404, error="Location not found!")
+
+            # Query the database for the nearest record with an image
+            status, error, message, data = 0, "", "", {}
+            crowdSeq = dataManager.getCrowdSeq(atLocation, atTime, noOfSeq)
+            processedSeq = []
+            hasData, isAnyZero = False, False
+            for crowdRes in crowdSeq:
+                processedRes = list(crowdRes)
+                if crowdRes[0] < -1:
+                    if crowdRes[0] == -1: status, error = 400, "No Proper Input!"
+                    elif crowdRes[0] == -2: status, error = 404, "Unavailable Location!"
+                    elif crowdRes[0] == -10: status, error = 500, f"Error on Query!(${crowdRes[1]})"
+                    break
+                elif crowdRes[0] == 0: isAnyZero = True
+                else:
+                    hasData = True
+                    processedRes[1] = time2Str(processedRes[1])
+                    processedRes[6] = time2Str(processedRes[6])
+                processedSeq.append(processedRes)
+            else:
+                if not hasData:
+                    status, message = 222, "Have No enough information Given Location!"
+                elif isAnyZero:
+                    status, message = 206, "Contains some TimeDiv with no data!"
+                else:
+                    status, message = 200, "Done!"
+                    data = {"crowdAtSeq": processedSeq}
+            # print(atLocation, status, message, error)
+            return fixAndRespond(status, message, error, data)
+        except Exception as e:
+            e.with_traceback()
+            return response(500, error=str(e))
+
 # Adding routes/endpoints to the API
 # Status(200) Means: Done
 # Status(201) Means: Created
@@ -196,6 +243,7 @@ api.add_resource(CreateLocation, '/createLocation')
 api.add_resource(PostCrowdAt, '/postCrowdAt')
 api.add_resource(GetEstimation, '/getEstimation')
 api.add_resource(GetPhotoNear, '/getPhotoNear')
+api.add_resource(GetCrowdSeq, '/getCrowdSeq')
 
 
 if __name__ == '__main__':

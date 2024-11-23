@@ -1,11 +1,19 @@
+import datetime
 import sqlite3
 from os import makedirs, path
-from datetime import timedelta
 from CrowdBackend import ServerDir
+from datetime import timedelta, datetime as dt
 from CrowdBackend.Utils import avg, str2Time, time2Str
 
+sqlOnlyDate = lambda time: f"strftime('%F', {time})"
+sqlOnlyTime = lambda time: f"strftime('%T', {time})"
+sqlTimeInSec = lambda time: f"strftime('%s', {time})"
+sqlDateInSec = lambda time: f"strftime('%s', strftime('%Y-%m-%d', {time}))"
+sqlSecOfDay = lambda time: f"({sqlTimeInSec(time)} - {sqlDateInSec(time)})"
+TimeZoneDrift = timedelta(hours=5, minutes=30)
 
 class DataManager:
+    defDivTimeDelta = 1800
     databaseDir = f"{ServerDir}/database"
     databasePath = f"{databaseDir}/CrowdDatabase.db"
     def __init__(self, dbName=databasePath):
@@ -181,9 +189,9 @@ class DataManager:
                     resCode = 2
         return resCode, avgCrowd, avgCrowdOn4Hrs, lowCrowdAt, crownOnN4Hrs
 
-    # If photoNeeded only chooses Record with Photo,
-    # Even if Record near time without photo exists
     def getRecordNear(self, location, time, recordWith="PhotoOnly"):
+        # If photoNeeded only chooses Record with Photo,
+        # Even if Record near time without photo exists
         if isinstance(time, str): time = str2Time(time)
         # Error No enough data
         if location is None or time is None: return (-1, )
@@ -223,15 +231,111 @@ class DataManager:
             # Error RuntimeError
             return -10, e
 
+    def getCrowdAtEx(self, location, time, divTimeDelta=defDivTimeDelta):
+        if isinstance(time, str): time = str2Time(time)
+        if location is None or time is None: return (-1, )
+        if not self.isLocationIn(location): return (-2, )
+
+        timeStr = time2Str(time)
+        nearTimeWeekDay = (time.isoweekday()) % 7
+        nearTimeDaySec = (timedelta(hours=time.hour, minutes=time.minute, seconds=time.second)
+                          .total_seconds())
+        nearTimeDaySec = int(nearTimeDaySec)
+        nearTimeInDiv = nearTimeDaySec // divTimeDelta
+        try:
+            # Query for records within 30 minutes before and after the given time
+            for queryAcc in range(3):
+                typeCondition = ""
+                if queryAcc == 0:
+                    typeCondition = f"And {sqlOnlyDate('atTime')} = {sqlOnlyDate(f"'{timeStr}'")}"
+                elif queryAcc == 1:
+                    typeCondition = f"And strftime('%w', {'atTime'}) = '{nearTimeWeekDay}'"
+
+                query = f"""
+                   Select 
+                       {sqlTimeInSec('atTime')}/{divTimeDelta},
+                       count(crowdCount), min(crowdCount), max(crowdCount), avg(crowdCount),
+                       {sqlTimeInSec('atTime')}/1, MIN(ABS({sqlSecOfDay('atTime')} - {nearTimeDaySec}))
+                   From Record Where location = '{location}' {typeCondition}
+                   Group by {sqlSecOfDay('atTime')}/{divTimeDelta}
+                   Having {sqlSecOfDay('atTime')}/{divTimeDelta} = {nearTimeInDiv}
+               ;"""
+                self.cursor.execute(query)
+                queryRes = self.cursor.fetchone()
+                if queryRes and any(queryRes):
+                    timeDiv, count, min, max, avg, nearRecordTime, withGap = queryRes
+                    timeOfDiv = dt.fromtimestamp(timeDiv * divTimeDelta) - TimeZoneDrift
+                    timeOfNRecord = dt.fromtimestamp(nearRecordTime) - TimeZoneDrift
+                    return queryAcc + 1, timeOfDiv, count, min, max, avg, timeOfNRecord, withGap
+            # Error No Enough Records to Analyze
+            return (0,)
+        except sqlite3.Error as e:
+            print(f"Error querying records: {e}")
+            # Error RuntimeError
+            return -10, e
+
+    def getCrowdSeq(self, location, time, noOfSeq=4, divTimeDelta=defDivTimeDelta):
+        if isinstance(time, str): time = str2Time(time)
+        return [
+            self.getCrowdAtEx(
+                location, time + timedelta(seconds=seq * divTimeDelta),
+                divTimeDelta=divTimeDelta
+            )
+            for seq in range(noOfSeq)
+        ]
+
     def closeConnection(self):
         if self.connection:
             self.connection.close()
 
+def testProto(manager, location, nearTime):
+    timePH = "atTime"
+    nearTime = f"'{nearTime}'"
+    result = manager.cursor.execute(
+        f"""
+           Select
+               {sqlTimeInSec(timePH)}/{divTimeBySecs},
+               count(crowdCount), min(crowdCount), max(crowdCount), avg(crowdCount),
+               {sqlTimeInSec(timePH)}/1, MIN(ABS({sqlSecOfDay(timePH)} - {sqlSecOfDay(nearTime)}))
+           From Record Where location = '{location}'
+                -- And {sqlOnlyDate(timePH)} = {sqlOnlyDate(nearTime)}
+                -- And strftime('%w', {timePH}) = strftime('%w', {nearTime})
+           Group by {sqlSecOfDay(timePH)}/{divTimeBySecs}
+           Having {sqlSecOfDay(timePH)}/{divTimeBySecs} = {sqlSecOfDay(nearTime)}/{divTimeBySecs}
+       ;"""
+        # f"""
+        #     Select
+        #         {sqlTimeInSec(time)}/{divTimeBySecs},
+        #         count(crowdCount), min(crowdCount), max(crowdCount), avg(crowdCount),
+        #         {sqlTimeInSec(time)}, MIN(ABS({sqlTimeInSec(time)} - {sqlTimeInSec(nearTime)}))
+        #     From Record Where location = 'Kammanahalli'
+        #     Group by {sqlTimeInSec(time)}/{divTimeBySecs}
+        #     Having {sqlTimeInSec(time)}/{divTimeBySecs} = {sqlTimeInSec(nearTime)}/{divTimeBySecs}
+        # ;"""
+    )
+
+    for record in result.fetchall():
+        # print(*record, sep=", ")
+        timeDiv, count, min, max, avg, nearRecordTime, withGap = record
+        timeDivInSec = (timeDiv * divTimeBySecs) - (3600 * 5.5)
+        timeOfDiv = dt.fromtimestamp(timeDivInSec)
+        timeOfNRecord = dt.fromtimestamp(nearRecordTime - (3600 * 5.5))
+        # secOfDivInDay = (divOnDay * divTimeBySecs)
+        print(timeOfDiv, count, min, max, avg, timeOfNRecord, withGap, sep=", ")
+        # print(atTime, dt.fromtimestamp(secOfDivInTime), secOfDivInDay // 3600, (secOfDivInDay % 3600) // 60, crdCnt, crdAvg, sep=", ")
+
 # Example Usage
 if __name__ == "__main__":
     dataManager = DataManager()
-    print(dataManager.isLocationIn("MG Road2"))
-    # for hr in range(200):
-    #     print(dataManager.getAdvCrowdDetailsAt("Indiranagar", datetime.now() - timedelta(hours=hr)))
-    # Close connection when done
+    location = "Domlur"
+    divTimeBySecs = DataManager.defDivTimeDelta
+    time = f"2024-10-14 10:00:00"
+    result = dataManager.getCrowdSeq(location, time, 24)
+    for res in result:
+        print(*res[1:], res[0], sep=", ")
+    # for i in range(24):
+    #     nearTime = f"2024-11-23 {i:02}:00:00" #dt.fromtimestamp(1732295642) # "2024-11-22 17:41:59"
+    #     new = dataManager.getCrowdAtEx(location, nearTime)
+    #     print(*new[1:], new[0], sep=", ")
+    # testProto(dataManager, location, nearTime)
     dataManager.closeConnection()

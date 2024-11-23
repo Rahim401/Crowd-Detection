@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 from cv2 import imwrite
 from PIL.Image import Image
@@ -49,15 +50,55 @@ class Colors:
 AreasInBangalore = {
     "Cantonment", "Domlur", "Indiranagar", "Rajajinagar", "Malleswaram",
     "Pete", "Sadashivanagar", "Seshadripuram", "Shivajinagar", "Ulsoor",
-    "Vasanth Nagar", "R. T. Nagar", "Bellandur", "CV Raman Nagar", "Hoodi",
-    "Krishnarajapuram", "Mahadevapura", "Marathahalli", "Varthur", "Whitefield",
+    # "Vasanth Nagar", "R. T. Nagar", "Bellandur", "CV Raman Nagar", "Hoodi",
+    # "Krishnarajapuram", "Mahadevapura", "Marathahalli", "Varthur", "Whitefield",
     "Banaswadi", "HBR Layout", "Horamavu", "Kalyan Nagar", "Kammanahalli",
-    "Lingarajapuram", "Ramamurthy Nagar", "Hebbal", "Jalahalli", "Mathikere",
-    "Peenya", "Vidyaranyapura", "Yelahanka", "Yeshwanthpur", "Bommanahalli", "Bommasandra",
-    "BTM Layout", "Electronic City", "HSR Layout", "Koramangala", "Madiwala", "Banashankari",
-    "Basavanagudi", "Girinagar", "J. P. Nagar", "Jayanagar", "Kumaraswamy Layout", "Padmanabhanagar",
-    "Uttarahalli", "Anjanapura", "Arekere", "Begur", "Gottigere", "Hulimavu", "Kothnur",
-    "Basaveshwaranagar", "Kamakshipalya", "Kengeri", "Mahalakshmi Layout", "Nagarbhavi",
-    "Nandini Layout", "Nayandahalli", "Rajajinagar", "Rajarajeshwari Nagar", "Vijayanagar",
-    "Devanahalli", "Hoskote", "Bidadi", "Bannerghatta", "Hosur"
+    # "Lingarajapuram", "Ramamurthy Nagar", "Hebbal", "Jalahalli", "Mathikere",
+    # "Peenya", "Vidyaranyapura", "Yelahanka", "Yeshwanthpur", "Bommanahalli", "Bommasandra",
+    # "BTM Layout", "Electronic City", "HSR Layout", "Koramangala", "Madiwala", "Banashankari",
+    # "Basavanagudi", "Girinagar", "J. P. Nagar", "Jayanagar", "Kumaraswamy Layout", "Padmanabhanagar",
+    # "Uttarahalli", "Anjanapura", "Arekere", "Begur", "Gottigere", "Hulimavu", "Kothnur",
+    # "Basaveshwaranagar", "Kamakshipalya", "Kengeri", "Mahalakshmi Layout", "Nagarbhavi",
+    # "Nandini Layout", "Nayandahalli", "Rajajinagar", "Rajarajeshwari Nagar", "Vijayanagar",
+    # "Devanahalli", "Hoskote", "Bidadi", "Bannerghatta", "Hosur"
 }
+
+def stampImage(type="red", **kwargs):
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    fontColor = (255, 255, 255)
+    fontScale, fontThick = 1, 2
+    startTextPos, nextYIncr = (10, 70), 35
+    image = None
+    imageShape = (854, 480)
+    imageRevShape = reversed((854, 480))
+
+    if type not in ("red", "blue"):
+        try:
+            image = cv2.imread(type)
+            image = cv2.resize(image, imageShape)
+            # fontScale, fontThick = 3, 5
+            fontColor = (0, 255, 255)
+        except Exception as e: pass
+    if image is None:
+        image = np.zeros((*imageRevShape, 3), np.uint8)
+        if type == "red": image[:] = (0, 0, 255)
+        elif type == "blue": image[:] = (255, 0, 0)
+        else: image[:] = (0, 0, 0)
+
+    textNextYPos = startTextPos[1]
+    for key, value in kwargs.items():
+        cv2.putText(
+            image, f"{key}: {value}", (startTextPos[0], textNextYPos),
+            font, fontScale, fontColor, fontThick, cv2.LINE_AA,
+        )
+        textNextYPos += nextYIncr
+    return image
+
+if __name__ == '__main__':
+    photoPath = "/media/rahim401/DevStuffs/Some Projects/Crowd Detection/CrowdBackend/TestImages/WhatsApp Image 2024-10-21 at 22.10.36.jpeg"
+    image = stampImage(
+        Location="Pes Canteen", AtTime="10:30PM",
+        type="blue"
+    )
+    cv2.imshow("Ommbu", image)
+    cv2.waitKey(-1)
