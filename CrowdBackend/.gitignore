@@ -1,0 +1,4 @@
+*.weights
+*.pt
+TestImages
+Server/database

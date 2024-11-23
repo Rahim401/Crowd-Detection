@@ -1,11 +1,13 @@
-import sqlite3, os
-from Utils import avg, str2Time, saveImage, time2Str
-from datetime import datetime, timedelta
-from CrowdDetector import crowdDetector
+import sqlite3
+from os import makedirs, path
+from datetime import timedelta
+from CrowdBackend import ServerDir
+from CrowdBackend.Utils import avg, str2Time, time2Str
 
 
 class DataManager:
-    databasePath = "database/CrowdDatabase.db"
+    databaseDir = f"{ServerDir}/database"
+    databasePath = f"{databaseDir}/CrowdDatabase.db"
     def __init__(self, dbName=databasePath):
         self.dbName = dbName
         self.connection = None
@@ -15,8 +17,8 @@ class DataManager:
 
     def connectToDatabase(self):
         try:
-            dbDir = os.path.dirname(self.dbName)
-            if not os.path.exists(dbDir): os.makedirs(dbDir)
+            dbDir = path.dirname(self.dbName)
+            if not path.exists(dbDir): makedirs(dbDir)
             self.connection = sqlite3.connect(self.dbName, check_same_thread=False)
             self.connection.execute("PRAGMA foreign_keys = ON;")
             self.cursor = self.connection.cursor()
@@ -61,22 +63,6 @@ class DataManager:
         except sqlite3.Error as e:
             print(f"Error inserting into Location table: {e}")
 
-    def insertRecordFromPhoto(self, atLocation, atTime, fromEmail, message, photo, crowdAt=-1):
-        if photo is not None:
-            # Save the image (as an example, saving the image to a folder)
-            locPath = f"database/{atLocation}"
-            if not os.path.exists(locPath): os.makedirs(locPath)
-            photoPath = f"database/{atLocation}/{atTime}.jpg"
-
-            if not saveImage(photo, photoPath):
-                photoPath = ""
-        else: photoPath = ""
-
-        if crowdAt is None or crowdAt < 0:
-            if photo is None: crowdAt = 0
-            else: crowdAt = len(crowdDetector.detectFromPath(photoPath))
-        self.insertRecord(atLocation, atTime, fromEmail, message, photoPath, crowdAt)
-
     def insertRecord(self, atLocation, atTime, fromEmail, message, photoPath, crowdAt):
         try:
             self.cursor.execute('''
@@ -102,7 +88,7 @@ class DataManager:
                 return any(self.cursor.fetchall())
             except sqlite3.Error as e:
                 print(f"Error fetching locations: {e}")
-        return []
+        return False
 
     def getRecordsByLocation(self, location):
         if location is not None:
@@ -131,9 +117,12 @@ class DataManager:
 
     def getCrowdAt(self, location, time):
         if isinstance(time, str): time = str2Time(time)
-        if location is None or time is None: return (0, )
-        timeWindowStart = (time - timedelta(minutes=60)).strftime("%Y-%m-%d %H:%M:%S")
-        timeWindowEnd = time.strftime("%Y-%m-%d %H:%M:%S")
+        # Error No enough data
+        if location is None or time is None: return -1
+        # Error Invalid Data
+        if not self.isLocationIn(location): return -2
+        timeWindowStart = time2Str(time - timedelta(minutes=60))
+        timeWindowEnd = time2Str(time)
         queryDetails = {
             "WHERE Location = ? AND AtTime BETWEEN ? AND ?": (location, timeWindowStart, timeWindowEnd),
             "WHERE Location = ? AND strftime('%w', AtTime) = ? AND strftime('%H', AtTime) = ?":
@@ -145,20 +134,29 @@ class DataManager:
             # Query for records within 30 minutes before and after the given time
             for idx, (condition, arg) in enumerate(queryDetails.items()):
                 self.cursor.execute(
-                    '''
+                    f'''
                         SELECT COUNT(CrowdCount), MIN(CrowdCount), MAX(CrowdCount), AVG(CrowdCount)
-                        FROM Record
-                    ''' + condition,  arg
+                        FROM Record {condition}
+                    ''',  arg
                 )
                 result = self.cursor.fetchone()
-                if result and any(result): return idx+1, *result
-        except sqlite3.Error as e: print(f"Error querying records: {e}")
-        return (0, )
+                if result and any(result):
+                    # Proper Result
+                    return idx+1, *result
+            # Error No Enough Records to Analyze
+            return (0,)
+        except sqlite3.Error as e:
+            print(f"Error querying records: {e}")
+            # Error RuntimeError
+            return -10, e
 
     def getAdvCrowdDetailsAt(self, location, time):
         if isinstance(time, str): time = str2Time(time)
-        if location is None or time is None: return (0, )
-        noOfNextHrToCheck = 4; resCode = -1;
+        # Error No enough data
+        if location is None or time is None: return (-1, )
+        # Error Invalid Data
+        if not self.isLocationIn(location): return (-2, )
+        noOfNextHrToCheck = 4; resCode = 0;
         avgCrowdOn4Hrs = 0; lowCrowdAt = -1
         crownOnN4Hrs = []
 
@@ -183,9 +181,14 @@ class DataManager:
                     resCode = 2
         return resCode, avgCrowd, avgCrowdOn4Hrs, lowCrowdAt, crownOnN4Hrs
 
-    def getRecordNear(self, location, time):
+    # If photoNeeded only chooses Record with Photo,
+    # Even if Record near time without photo exists
+    def getRecordNear(self, location, time, recordWith="PhotoOnly"):
         if isinstance(time, str): time = str2Time(time)
-        if location is None or time is None: return (0, )
+        # Error No enough data
+        if location is None or time is None: return (-1, )
+        # Error Invalid Data
+        if not self.isLocationIn(location): return (-2, )
         strTime = time2Str(time)
         queryDetails = {
             "WHERE Location = ?"
@@ -197,26 +200,28 @@ class DataManager:
         }
 
         try:
+            recordCond = ""
+            if recordWith == "PhotoOnly": recordCond = "AND PhotoPath != ''"
+            elif recordWith == "NoPhotoOnly": recordCond = "AND PhotoPath = ''"
             for idx, (condition, arg) in enumerate(queryDetails.items()):
                 self.cursor.execute(
-                    # f'''
-                    #     SELECT AtTime, PhotoPath, CrowdCount
-                    #     FROM Record
-                    #     WHERE Location = ?
-                    #     ORDER BY ABS(strftime('%s', AtTime) - strftime('%s', ?))
-                    #     AND PhotoPath IS NOT NULL
-                    #     LIMIT 1
-                    # ''', (location, strTime),
+                    # """select atTime, crowdCount, photoPath from Record where photoPath=''"""
                     f'''
                         SELECT AtTime, PhotoPath, CrowdCount
-                        FROM Record {condition}
-                        LIMIT 1
+                        FROM Record {condition} 
+                        AND PhotoPath = ''
                     ''',  arg
                 )
                 result = self.cursor.fetchone()
-                if result and any(result): return idx+1, *result
-        except sqlite3.Error as e: print(f"Error querying records: {e}")
-        return (0, )
+                if result and any(result):
+                    # Proper Result
+                    return idx+1, *result
+            # Error No Enough Records to Analyze
+            return (0, )
+        except sqlite3.Error as e:
+            print(f"Error querying records: {e}")
+            # Error RuntimeError
+            return -10, e
 
     def closeConnection(self):
         if self.connection:

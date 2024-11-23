@@ -1,8 +1,10 @@
 import cv2
 from ultralytics import YOLO
+from CrowdBackend import ServerDir
 
 class CrowdDetector:
-    def __init__(self, modelPath="model/yolov5xu.pt", confThreshold=0.25):
+    mainDir = f"{ServerDir}/model"
+    def __init__(self, modelPath=f"{mainDir}/yolov5xu.pt", confThreshold=0.25):
         # Load YOLOv8 model
         self.model = YOLO(modelPath)
         self.confThreshold = confThreshold  # Confidence threshold
@@ -56,7 +58,6 @@ class CrowdDetector:
 crowdDetector = CrowdDetector()
 
 if __name__ == "__main__":
-    # imagePath = f"{os.getcwd()}/testImages/WhatsApp Image 2024-10-21 at 22.10.37 (1).jpeg"
     imagePath = "/home/rahim401/Pictures/Screenshots/Screenshot from 2024-11-20 02-16-40.png"
     image = cv2.imread(imagePath)
     if image is not None:

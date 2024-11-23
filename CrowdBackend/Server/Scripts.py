@@ -1,8 +1,7 @@
 import random
-from PIL import Image
 # from cv2 import imread
 from datetime import datetime, timedelta
-from CrowdServer import DataManager
+from CrowdBackend.Server import DataManager
 
 # 7 mock places (locations) from Bangalore
 places = [
@@ -56,10 +55,10 @@ if __name__ == "__main__":
     # insertMockLocation(dataManager)
     # insertMockData(dataManager, 100)
 
-    dataManager.insertRecordFromPhoto(
-        "Jayanagar", "2014-10-25 10:10:20", "hrahim401",
-        "Hi Da", Image.open("/media/rahim401/DevStuffs/Some Projects/Crowd Detection Exp/CrowdServer/WhatsApp Image 2024-10-21 at 22.10.37.jpeg")
-    )
+    # dataManager.insertRecordFromPhoto(
+    #     "Jayanagar", "2014-10-25 10:10:20", "hrahim401",
+    #     "Hi Da", Image.open("/media/rahim401/DevStuffs/Some Projects/Crowd Detection Exp/CrowdBackend/WhatsApp Image 2024-10-21 at 22.10.37.jpeg")
+    # )
 
     # for (place, _) in places:
     #     print(dataManager.getAvgCrowdOf(place))

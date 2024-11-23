@@ -1,12 +1,12 @@
-import os
 import cv2
 import numpy as np
+from CrowdBackend import ServerDir, TestImageDir
 
 class CrowdDetector:
-    mainPath = f"{os.getcwd()}/model"
-    cfgPath = f"{mainPath}/yolov3.cfg"
-    weightPath = f"{mainPath}/yolov3.weights"
-    classNamePath = f"{mainPath}/coco.names"
+    mainDir = f"{ServerDir}/model"
+    cfgPath = f"{mainDir}/yolov3.cfg"
+    weightPath = f"{mainDir}/yolov3.weights"
+    classNamePath = f"{mainDir}/coco.names"
 
     def __init__(self, modelCfg=cfgPath, modelWeights=weightPath, classNamesFile=classNamePath):
         # Load the class names (COCO dataset)
@@ -97,7 +97,7 @@ class CrowdDetector:
 
 crowdDetector = CrowdDetector()
 if __name__ == "__main__":
-    image = cv2.imread(f"{os.getcwd()}/testImages/WhatsApp Image 2024-10-21 at 22.10.37 (1).jpeg")
+    image = cv2.imread(f"{TestImageDir}/WhatsApp Image 2024-10-21 at 22.10.36.jpeg",)
     if image is not None:
         det = crowdDetector.detect(image)
         res = crowdDetector.drawDetections(image, det)
