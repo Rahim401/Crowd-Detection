@@ -24,7 +24,7 @@ class GetLocations(Resource):
             locations = dataManager.getAllLocations()
             # Extract only the location names
             allLocations = [location[0] for location in locations]
-            return response(200, allLocations=allLocations)
+            return response(200, message="Done!", allLocations=allLocations)
         except Exception as e:
             return response(500, error=str(e))
 
@@ -65,6 +65,7 @@ class PostCrowdAt(Resource):
             try: photoBytes = base64.b64decode(encodedPhoto)
             except: photoBytes = None
 
+            print(atLocation, atTime, fromMail)
             if not all([atLocation, atTime, fromMail]):
                 return response(400, error="Some inputs are missing!")
             if not dataManager.isLocationIn(atLocation):
@@ -248,4 +249,4 @@ api.add_resource(GetCrowdSeq, '/getCrowdSeq')
 
 if __name__ == '__main__':
     # Start the Flask server
-    app.run(debug=True)
+    app.run(debug=True, host="0.0.0.0")

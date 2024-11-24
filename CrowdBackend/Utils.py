@@ -12,7 +12,7 @@ def avg(lst: list[int]):
 def response(status: int = 200, *args, **kwargs):
     return make_response(jsonify(*args, **kwargs), status)
 
-def fixAndRespond(status = 0, message="", error="", data=None):
+def fixAndRespond(status=0, message="", error="", data=None):
     if data is None: data = {}
     if status == 0: status, error = 501, "Unexpected Error!"
     if status >= 400 or error: data["error"] = error
@@ -45,7 +45,6 @@ class Colors:
     Green, Red, White = '\033[92m', '\033[91m', '\033[0m'
     Blue, Orange = '\033[94m', '\033[93m'
     Bold, Italics = '\033[1m', '\x1B[3m'
-
 
 AreasInBangalore = {
     "Cantonment", "Domlur", "Indiranagar", "Rajajinagar", "Malleswaram",

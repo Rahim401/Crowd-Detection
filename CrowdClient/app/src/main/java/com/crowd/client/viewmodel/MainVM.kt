@@ -1,4 +1,4 @@
-package com.crowd.client
+package com.crowd.client.viewmodel
 
 import android.content.Context
 import androidx.compose.runtime.getValue
@@ -6,11 +6,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.crowd.client.R
 import com.crowd.client.application.AppData
 import com.crowd.client.application.MainApplication
 import com.crowd.client.application.Query
-import com.crowd.client.application.User
-import com.crowd.client.ui.pages.resultFrag.PicOfPlace
 import com.crowd.client.utils.android.makeToast
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -22,23 +21,6 @@ enum class Fragment {
     StartFrag, UserFrag, QueryFrag,
     LoadingFrag, ResultPage
 }
-
-sealed class UiAction
-data object EnterApp: UiAction()
-data class SaveUser(val user: User): UiAction()
-data class GetEstimation(
-    val location: String,
-    val atDate: Long?,
-    val atTime: Pair<Int, Int>?
-): UiAction()
-data object GoBack: UiAction()
-
-data class EstResultState(
-    val picData: PicOfPlace,
-    val crowdIs: String = "low",
-    val timeToGo: String = "5:30pm",
-    val leastCrowdAt: String = "9am",
-)
 
 class MainVM: ViewModel(), MainApplication.AppCompanion {
     override fun initialize(context: Context) {

@@ -1,6 +1,2 @@
 *.bat
 .idea
-
-*.weights
-testImages
-database

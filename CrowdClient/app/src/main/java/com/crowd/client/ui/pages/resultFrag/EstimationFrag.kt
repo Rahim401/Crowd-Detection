@@ -25,11 +25,8 @@ import com.crowd.client.R
 import com.crowd.client.ui.pages.common.components.AppButton
 import com.crowd.client.ui.pages.mainPage.components.Background
 import com.crowd.client.ui.theme.CrowdClientTheme
+import com.crowd.client.viewmodel.PicOfPlace
 
-data class PicOfPlace(
-    @DrawableRes val image: Int,
-    val picDescription: String
-)
 
 @Composable
 fun EstimationFrag(
