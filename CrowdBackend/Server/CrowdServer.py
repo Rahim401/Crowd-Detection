@@ -223,7 +223,7 @@ class GetCrowdSeq(Resource):
                     status, message = 206, "Contains some TimeDiv with no data!"
                 else:
                     status, message = 200, "Done!"
-                    data = {"crowdAtSeq": processedSeq}
+                data = {"crowdAtSeq": processedSeq}
             # print(atLocation, status, message, error)
             return fixAndRespond(status, message, error, data)
         except Exception as e:

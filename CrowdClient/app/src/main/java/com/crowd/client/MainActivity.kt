@@ -25,7 +25,7 @@ class MainActivity : ComponentActivity() {
                 MainPage(
                     Modifier.fillMaxSize(), viewModel.onFragment,
                     viewModel.isWaitingForResult, viewModel.estimationResult, viewModel.queryLastMade,
-                    CrowdApi.availableLocations ?: listOf("PES Canteen"),
+                    CrowdApi.availableLocations ?: listOf("GJB Cafe"),
                     onAction = { viewModel.handelAction(it, this) }
                 )
             }

@@ -5,3 +5,4 @@ ServerDir = f"{BackendDir}/Server"
 ApiDir = f"{BackendDir}/Api"
 
 TestImageDir = f"{BackendDir}/TestImages"
+DatabaseInsertDir = f"{BackendDir}/DatabaseInsert"

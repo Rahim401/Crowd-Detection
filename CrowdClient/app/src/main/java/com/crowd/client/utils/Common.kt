@@ -20,6 +20,10 @@ private val timeOtFormat = SimpleDateFormat("h:mma", Locale.getDefault())
 fun time2OtStr(time: Date = Date()): String = timeOtFormat.format(time)
 fun timeStamp2OtStr(time: Long = System.currentTimeMillis()): String = timeOtFormat.format(Date(time))
 
+private val timeHtFormat = SimpleDateFormat("ha", Locale.getDefault())
+fun time2HtStr(time: Date = Date()): String = timeHtFormat.format(time)
+fun timeStamp2HtStr(time: Long = System.currentTimeMillis()): String = timeHtFormat.format(Date(time))
+
 @SuppressLint("ConstantLocale")
 private val sTimeFormat = SimpleDateFormat("yyyy-MM-dd' 'h:mma", Locale.getDefault())
 fun time2SStr(time: Date = Date()): String = sTimeFormat.format(time)

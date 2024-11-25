@@ -16,7 +16,10 @@ import com.crowd.client.network.base642Image
 import com.crowd.client.network.handle
 import com.crowd.client.utils.android.makeToast
 import com.crowd.client.utils.str2Time
+import com.crowd.client.utils.time2HtStr
 import com.crowd.client.utils.time2OtStr
+import com.crowd.client.utils.timeStamp2HtStr
+import com.crowd.client.utils.timeStamp2OtStr
 import com.crowd.client.utils.timeStamp2Str
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -115,11 +118,10 @@ class MainVM: ViewModel(), MainApplication.AppCompanion {
                         val crowdAtSeq = data["crowdAtSeq"] as List<*>
                         var tripleData: Triple<Date, Float, Date>? = null
                         var shTrmLeastCrowdIs = 500f
-                        var oAllLeastCrowdAt = 0
-                        var oAllLeastCrowdIs = 500f
+                        var oAllLeastCrowdAt = 0; var oAllLeastCrowdIs = 500f
                         crowdAtSeq.forEachIndexed { idx, crowdAt ->
                             crowdAt as List<*>
-//                            println("$idx: $crowdAt")
+                            println("$idx: $crowdAt")
                             try{
                                 val crowdAcc = ((crowdAt)[0] as Double).toInt()
                                 if(idx < 10 && crowdAcc == 1) {
@@ -148,6 +150,7 @@ class MainVM: ViewModel(), MainApplication.AppCompanion {
                             val (recordTime ,nowPhoto, crowdInPhoto) = getPhotoNear(
                                 query.place, timeInStr
                             )!!
+
                             println("$recordTime $nowPhoto, $crowdInPhoto")
                             val (divTime, avgCrowd, nRecTime) = tripleData!!
                             val oAllLeastCrowdDiv = str2Time(
@@ -161,21 +164,22 @@ class MainVM: ViewModel(), MainApplication.AppCompanion {
                             }
                             val diffInDiv = System.currentTimeMillis() - divTime.time
                             val time2Go = if(diffInDiv in 0..3599999)
-                                "now"
-                            else "at ${time2OtStr(divTime)}"
-                            println("$diffInDiv $time2Go")
+                                "now" else "between ${time2HtStr(divTime)} to" +
+                                    " ${timeStamp2HtStr(divTime.time+3600000)}"
+//                            println("$diffInDiv $time2Go")
 
+                            val queryTime = Date(query.timeInMillis)
                             val photoTime = str2Time(recordTime)!!
                             val picDesc = "${query.place} at ${time2OtStr(photoTime)}"
-                            EstSuccess(
+                            if(queryTime.date == photoTime.date && queryTime.hours == photoTime.hours) return EstSuccess(
                                 query, BitPicOfPlace(nowPhoto.asImageBitmap(), picDesc),
                                 crowdInPhoto, crowdStatus, time2Go,
-                                time2OtStr(oAllLeastCrowdDiv),
+                                time2HtStr(oAllLeastCrowdDiv),
                             )
                         }
-                        else  EstFailed(
-                            "No Enough Data!",
-                            "Try aging with, Some other Location!"
+                        return EstFailed(
+                            "No Data on Time!",
+                            "Try aging with, Some other Time!"
                         )
                     }
                     code == 222 -> EstFailed(

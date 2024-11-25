@@ -30,6 +30,9 @@ CrowdDetectionServer/
 - **Python 3.6+**
 - **YOLO Model Files**: Place `yolov3.cfg`, `yolov3.weights`, and `coco.names` in the `model` directory for crowd detection.
 - **Database**: A pre-populated SQLite database will be created on server initialization.
+```bash
+https://pjreddie.com/media/files/yolov3.weights
+```
 
 ### Installing Dependencies
 

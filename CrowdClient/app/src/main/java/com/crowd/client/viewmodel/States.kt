@@ -10,7 +10,7 @@ interface PicType {
 }
 data class ResPicOfPlace(
     @DrawableRes val image: Int = R.drawable.t1,
-    override val picDescription: String = "PES Canteen at 10pm"
+    override val picDescription: String = "GJB Cafe at 10pm"
 ): PicType
 @Stable
 data class BitPicOfPlace(
@@ -32,7 +32,7 @@ data class EstSuccess(
     val forQuery: Query = Query.fromTime(),
     val picAtQuery: PicType = ResPicOfPlace(),
     val crowdAtQuery: Int = 0,
-    val crowdIs: String = "low",
+    val crowdIs: String = "Low",
     val timeToGo: String = "5:30pm",
     val leastCrowdAt: String = "9am",
     override val message: String = "Crowd at Location \nis Estimated!",
@@ -46,7 +46,7 @@ data class Query(
 ) {
     companion object {
         fun fromTime(
-            place: String = "PES Canteen",
+            place: String = "GJB Cafe",
             time: Long = System.currentTimeMillis()
         ): Query {
             val date = java.util.Date(time)

@@ -20,13 +20,14 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.crowd.client.ui.pages.common.components.AppButton
 import com.crowd.client.ui.pages.mainPage.components.Background
 import com.crowd.client.ui.theme.CrowdClientTheme
-import com.crowd.client.utils.timeStamp2SStr
 import com.crowd.client.viewmodel.BitPicOfPlace
 import com.crowd.client.viewmodel.EstSuccess
 import com.crowd.client.viewmodel.ResPicOfPlace
@@ -35,8 +36,8 @@ import com.crowd.client.viewmodel.ResPicOfPlace
 @Composable
 fun EstimationFrag(
     modifier: Modifier = Modifier,
-    estSuccess: EstSuccess = EstSuccess(),
-//    picData: PicOfPlace = PicOfPlace(R.drawable.t1, "PES Canteen at 10pm"),
+    estRes: EstSuccess = EstSuccess(),
+//    picData: PicOfPlace = PicOfPlace(R.drawable.t1, "GJB Cafe at 10pm"),
 //    crowdIs: String = "low",
 //    timeToGo: String = "5:30pm",
 //    leastCrowdAt: String = "9am",
@@ -55,19 +56,39 @@ fun EstimationFrag(
         ) {
             Text(
                 text = "Estimated Result",
-                style = MaterialTheme.typography.headlineLarge,
+                style = MaterialTheme.typography.headlineLarge.copy(
+
+                    textDecoration = TextDecoration.Underline,
+                ),
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.padding(top = 30.dp)
             )
+//            Text(
+//                text = buildAnnotatedString {
+//                    append("Request is at ")
+//                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+//                        append(estSuccess.forQuery.place)
+//                    }
+//                    append("\nat the Time ")
+//                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+//                        append(timeStamp2SStr(estSuccess.forQuery.timeInMillis))
+//                    }
+//                },
+//                style = MaterialTheme.typography.titleSmall,
+//                color = MaterialTheme.colorScheme.onPrimaryContainer,
+//                textAlign = TextAlign.Center,
+//                modifier = Modifier.padding(top = 15.dp)
+//            )
+
             Text(
                 text = buildAnnotatedString {
-                    append("Request is at ")
+                    append("According to our estimations, Crowd at\n the Given time in ")
                     withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                        append(estSuccess.forQuery.place)
+                        append(estRes.forQuery.place)
                     }
-                    append("\nat the Time ")
+                    append(" is ")
                     withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                        append(timeStamp2SStr(estSuccess.forQuery.timeInMillis))
+                        append(estRes.crowdIs)
                     }
                 },
                 style = MaterialTheme.typography.titleSmall,
@@ -75,21 +96,36 @@ fun EstimationFrag(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 15.dp)
             )
+            Text(
+                text = buildAnnotatedString {
+                    append("Crowd Count: ")
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                        append("${estRes.crowdAtQuery}")
+                    }
+                },
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Medium, fontSize = 25.sp,
+//                    textDecoration = TextDecoration.Underline,
+                ),
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 0.dp)
+            )
 
-            estSuccess.picAtQuery.let { pic ->
+            estRes.picAtQuery.let { pic ->
                 when(pic) {
                     is ResPicOfPlace -> Image(
                         painter = painterResource(id = pic.image),
                         contentDescription = pic.picDescription,
                         modifier = Modifier
-                            .padding(top = 20.dp)
+                            .padding(top = 5.dp)
                             .clip(ShapeDefaults.Small)
                     )
                     is BitPicOfPlace -> Image(
                         bitmap = pic.image,
                         contentDescription = pic.picDescription,
                         modifier = Modifier
-                            .padding(top = 20.dp)
+                            .padding(top = 5.dp)
                             .clip(ShapeDefaults.Small)
                     )
                     else -> {}
@@ -97,7 +133,7 @@ fun EstimationFrag(
             }
 
             Text(
-                text = estSuccess.picAtQuery.picDescription,
+                text = estRes.picAtQuery.picDescription,
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                 textAlign = TextAlign.Center,
@@ -105,32 +141,21 @@ fun EstimationFrag(
             )
 
             Text(
-                text = buildAnnotatedString {
-                    append("According to our estimations, Crowd now\n at ")
-                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                        append(estSuccess.forQuery.place)
-                    }
-                    append(" is ")
-                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                        append("${estSuccess.crowdIs}(${estSuccess.crowdAtQuery})")
-                    }
-                },
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 25.dp)
+                text = "Recommendation",
+                style = MaterialTheme.typography.headlineLarge.copy(textDecoration = TextDecoration.Underline),
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 1f),
+                modifier = Modifier.padding(top = 40.dp)
             )
-
             Text(
                 text = buildAnnotatedString {
-                    if(estSuccess.timeToGo == "now")
+                    if(estRes.timeToGo == "now")
                         append("It is a good choice to go now!")
                     else {
-                        append("We recommend you to go at ")
+                        append("According to our estimation the Best time\n to visit is ")
                         withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                            append(estSuccess.timeToGo)
+                            append(estRes.timeToGo)
                         }
-                        append(",\nas it's when Crowd lowers!")
+//                        append(",\nas it's when Crowd lowest!")
                     }
                 },
                 style = MaterialTheme.typography.titleSmall,
@@ -141,15 +166,16 @@ fun EstimationFrag(
 
             Text(
                 text = buildAnnotatedString {
+                    append("And, According to the Overall Average Estimation ")
                     withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                        append(estSuccess.leastCrowdAt)
+                        append(estRes.leastCrowdAt)
                     }
-                    append(" is the time with least crowd!")
+                    append(" is the time to Visit!")
                 },
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 40.dp)
+                modifier = Modifier.padding(top = 10.dp)
             )
         }
 

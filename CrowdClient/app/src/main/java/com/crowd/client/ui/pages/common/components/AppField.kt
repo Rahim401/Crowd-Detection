@@ -45,7 +45,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.crowd.client.R
 import com.crowd.client.ui.theme.CrowdClientTheme
+import com.crowd.client.utils.time2OtStr
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -187,7 +189,14 @@ fun AppTimeField(
 ) {
     var showPicker by remember { mutableStateOf(false) }
     if(showPicker) AppTimePickerDialog(
-        onCancel = { showPicker = false },
+        timeState = value ?: remember {
+            val currentTime = Calendar.getInstance()
+            TimePickerState(
+                initialHour = currentTime.get(Calendar.HOUR_OF_DAY),
+                initialMinute = currentTime.get(Calendar.MINUTE),
+                false
+            )
+        }, onCancel = { showPicker = false },
         onPicked = {
             onValueChanged(it)
             showPicker = false
@@ -195,8 +204,12 @@ fun AppTimeField(
     )
 
     val textTime = value?.let {
-        "${it.hour % 12}:${it.minute} " +
-                if(it.hour < 12) "AM" else "PM"
+        val timeNow = Date()
+        timeNow.hours = it.hour
+        timeNow.minutes = it.minute
+        time2OtStr(timeNow)
+//        "${it.hour % 12}:${it.minute} " +
+//                if(it.hour < 12) "AM" else "PM"
     } ?: ""
     AppField(label, textTime, modifier, onClear = onClear) { showPicker = true }
 }
@@ -216,6 +229,10 @@ fun AppDateField(
 ) {
     var showPicker by remember { mutableStateOf(false) }
     if(showPicker) AppDatePickerDialog(
+        dateState = value ?: remember {
+            val currentTime = Calendar. getInstance()
+            DatePickerState(Locale.ROOT, currentTime. timeInMillis)
+        },
         onCancel = { showPicker = false },
         onPicked = {
             onValueChanged(it)
@@ -264,7 +281,7 @@ private fun Preview() {
             Arrangement.spacedBy(10.dp), Alignment.CenterHorizontally
         ) {
             Box {
-                val options = listOf("PES Canteen", "Bangalore Palace", "Acharya Canteen", "TN Sathankulam")
+                val options = listOf("GJB Cafe", "Bangalore Palace", "Acharya Canteen", "TN Sathankulam")
                 var value by remember { mutableStateOf(0) }
                 AppSelectorField(
                     label = "Place", value = options.getOrElse(value) {
