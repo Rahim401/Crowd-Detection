@@ -171,7 +171,15 @@ class MainVM: ViewModel(), MainApplication.AppCompanion {
                             val queryTime = Date(query.timeInMillis)
                             val photoTime = str2Time(recordTime)!!
                             val picDesc = "${query.place} at ${time2OtStr(photoTime)}"
-                            if(queryTime.date == photoTime.date && queryTime.hours == photoTime.hours) return EstSuccess(
+//                            if(
+//                                queryTime.date == photoTime.date
+//                                && queryTime.hours == photoTime.hours
+//                            ) return EstSuccess(
+//                                query, BitPicOfPlace(nowPhoto.asImageBitmap(), picDesc),
+//                                crowdInPhoto, crowdStatus, time2Go,
+//                                time2HtStr(oAllLeastCrowdDiv),
+//                            )
+                            return EstSuccess(
                                 query, BitPicOfPlace(nowPhoto.asImageBitmap(), picDesc),
                                 crowdInPhoto, crowdStatus, time2Go,
                                 time2HtStr(oAllLeastCrowdDiv),

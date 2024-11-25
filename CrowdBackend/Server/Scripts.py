@@ -70,7 +70,7 @@ def insertFromDir(database, insertDir=DatabaseInsertDir):
         database.insertLocation(location, "Insert from Dir")
         for image in os.listdir(locDir):
             try:
-                if not image.endswith(".jpeg"): continue
+                if not image.endswith(".jpeg") and not image.endswith(".jpg"): continue
                 if image.count(".") == 1:
                     imageTimeStr = image.strip().split(".")[0]
                     crowdCount = -1
@@ -79,6 +79,7 @@ def insertFromDir(database, insertDir=DatabaseInsertDir):
                     crowdCount = int(crowdCount)
                 else: continue
 
+                imageTimeStr = imageTimeStr.replace(",", ":")
                 imageTime = str2Time(imageTimeStr)
                 if not imageTime: return
                 imagePath = f"{locDir}/{image}"

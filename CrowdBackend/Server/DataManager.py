@@ -292,7 +292,7 @@ class DataManager:
                      MIN(ABS({sqlSecOfDay('atTime')} - {nearTimeDaySec}))
                 From Record Where location = '{location}' 
                 And {sqlOnlyDate('atTime')} = {sqlOnlyDate(f"'{timeStr}'")}
-                And {sqlSecOfDay('atTime')}/{divTimeDelta} = {nearTimeInDiv}
+                -- And {sqlSecOfDay('atTime')}/{divTimeDelta} = {nearTimeInDiv}
                 And PhotoPath != ''
                 -- Group by {sqlSecOfDay('atTime')}/{divTimeDelta}
                 -- Having {sqlSecOfDay('atTime')}/{divTimeDelta} = {nearTimeInDiv}
