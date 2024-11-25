@@ -4,9 +4,9 @@ import android.content.SharedPreferences
 import com.crowd.client.utils.android.AppPreferences
 import com.crowd.client.utils.android.getObject
 import com.crowd.client.utils.android.put
+import com.crowd.client.viewmodel.Query
 
 data class User(val name: String, val email: String)
-data class Query(val place: String, val time: Long)
 
 interface BaseAppData: MainApplication.AppCompanion {
     var user: User?

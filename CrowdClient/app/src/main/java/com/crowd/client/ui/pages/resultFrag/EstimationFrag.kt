@@ -1,6 +1,5 @@
 package com.crowd.client.ui.pages.resultFrag
 
-import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -17,24 +16,30 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.crowd.client.R
 import com.crowd.client.ui.pages.common.components.AppButton
 import com.crowd.client.ui.pages.mainPage.components.Background
 import com.crowd.client.ui.theme.CrowdClientTheme
-import com.crowd.client.viewmodel.PicOfPlace
+import com.crowd.client.utils.timeStamp2SStr
+import com.crowd.client.viewmodel.BitPicOfPlace
+import com.crowd.client.viewmodel.EstSuccess
+import com.crowd.client.viewmodel.ResPicOfPlace
 
 
 @Composable
 fun EstimationFrag(
     modifier: Modifier = Modifier,
-    picData: PicOfPlace = PicOfPlace(R.drawable.t1, "PES Canteen at 10pm"),
-    crowdIs: String = "low",
-    timeToGo: String = "5:30pm",
-    leastCrowdAt: String = "9am",
+    estSuccess: EstSuccess = EstSuccess(),
+//    picData: PicOfPlace = PicOfPlace(R.drawable.t1, "PES Canteen at 10pm"),
+//    crowdIs: String = "low",
+//    timeToGo: String = "5:30pm",
+//    leastCrowdAt: String = "9am",
     onGoBack: () -> Unit = {}
 ) {
     Box(
@@ -43,7 +48,9 @@ fun EstimationFrag(
             .padding(10.dp, 50.dp, 10.dp, 10.dp),
     ) {
         Column(
-            Modifier.fillMaxWidth().padding(horizontal = 10.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -52,53 +59,105 @@ fun EstimationFrag(
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.padding(top = 30.dp)
             )
-
             Text(
-                text = "According to our estimations, Crowd at\nthe given location is $crowdIs",
+                text = buildAnnotatedString {
+                    append("Request is at ")
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                        append(estSuccess.forQuery.place)
+                    }
+                    append("\nat the Time ")
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                        append(timeStamp2SStr(estSuccess.forQuery.timeInMillis))
+                    }
+                },
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 30.dp)
+                modifier = Modifier.padding(top = 15.dp)
             )
 
-            Image(
-                painter = painterResource(id = picData.image),
-                contentDescription = "Place At time",
-                modifier = Modifier.padding(top = 30.dp)
-                    .clip(ShapeDefaults.Small)
-            )
+            estSuccess.picAtQuery.let { pic ->
+                when(pic) {
+                    is ResPicOfPlace -> Image(
+                        painter = painterResource(id = pic.image),
+                        contentDescription = pic.picDescription,
+                        modifier = Modifier
+                            .padding(top = 20.dp)
+                            .clip(ShapeDefaults.Small)
+                    )
+                    is BitPicOfPlace -> Image(
+                        bitmap = pic.image,
+                        contentDescription = pic.picDescription,
+                        modifier = Modifier
+                            .padding(top = 20.dp)
+                            .clip(ShapeDefaults.Small)
+                    )
+                    else -> {}
+                }
+            }
+
             Text(
-                text = picData.picDescription,
+                text = estSuccess.picAtQuery.picDescription,
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 7.dp)
             )
 
-            val message = if(timeToGo.isBlank())
-                "It is a good choice to go now!"
-            else "We recommend you to go at $timeToGo"
             Text(
-                text = message,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 50.dp)
-            )
-
-            Text(
-                text = "$leastCrowdAt is the time when this place will\n have the least crowd!",
+                text = buildAnnotatedString {
+                    append("According to our estimations, Crowd now\n at ")
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                        append(estSuccess.forQuery.place)
+                    }
+                    append(" is ")
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                        append("${estSuccess.crowdIs}(${estSuccess.crowdAtQuery})")
+                    }
+                },
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 25.dp)
+            )
+
+            Text(
+                text = buildAnnotatedString {
+                    if(estSuccess.timeToGo == "now")
+                        append("It is a good choice to go now!")
+                    else {
+                        append("We recommend you to go at ")
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                            append(estSuccess.timeToGo)
+                        }
+                        append(",\nas it's when Crowd lowers!")
+                    }
+                },
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 15.dp)
+            )
+
+            Text(
+                text = buildAnnotatedString {
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                        append(estSuccess.leastCrowdAt)
+                    }
+                    append(" is the time with least crowd!")
+                },
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 40.dp)
             )
         }
 
 
         AppButton(
             text = "Go Back",
-            modifier = Modifier.align(Alignment.BottomCenter)
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
                 .padding(bottom = 80.dp)
                 .fillMaxWidth(0.7f)
                 .height(60.dp),
@@ -112,11 +171,6 @@ fun EstimationFrag(
 private fun Preview() {
     CrowdClientTheme {
         Background(Modifier.fillMaxSize())
-//        Box(Modifier.fillMaxSize()) {
-//            EstimationFrag(
-//                Modifier.fillMaxSize(),
-//            )
-//        }
         EstimationFrag(
             Modifier.fillMaxSize(),
         )

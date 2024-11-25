@@ -1,20 +1,27 @@
 package com.crowd.client.viewmodel
 
 import android.content.Context
+import android.graphics.Bitmap
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.crowd.client.R
 import com.crowd.client.application.AppData
 import com.crowd.client.application.MainApplication
-import com.crowd.client.application.Query
+import com.crowd.client.network.CrowdApi
+import com.crowd.client.network.base642Image
+import com.crowd.client.network.handle
 import com.crowd.client.utils.android.makeToast
+import com.crowd.client.utils.str2Time
+import com.crowd.client.utils.time2OtStr
+import com.crowd.client.utils.timeStamp2Str
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.util.Calendar
 import java.util.Date
 
 enum class Fragment {
@@ -29,15 +36,22 @@ class MainVM: ViewModel(), MainApplication.AppCompanion {
 
     val crowdDenseList = listOf("Low", "Medium", "High", "Very High")
     val crowdPicList = listOf(R.drawable.t1, R.drawable.t2, R.drawable.t3, R.drawable.t4)
-    val coScope = CoroutineScope(viewModelScope.coroutineContext)
+    val coScope = CoroutineScope(Dispatchers.IO + viewModelScope.coroutineContext)
     var onFragment by mutableStateOf(Fragment.StartFrag); private set
+
+    var queryLastMade: Query = AppData.lastQuery ?: Query.fromTime()
+        private set
+    var estimationResult: EstResult = EstFailed(); private set
     var isWaitingForResult by mutableStateOf(true); private set
-    var isEstimationSuccessful by mutableStateOf(false); private set
-    var estimationResult: EstResultState? by mutableStateOf(null); private set
+//    var estimationResult: EstResult by mutableStateOf(EstFailed()); private set
 
     fun checkAndLog() {
-        onFragment = if (!AppData.isLoggedIn)
-            Fragment.UserFrag else Fragment.QueryFrag
+        onFragment = when {
+            !CrowdApi.isServerReachable() ->
+                Fragment.StartFrag
+            !AppData.isLoggedIn -> Fragment.UserFrag
+            else -> Fragment.QueryFrag
+        }
     }
     fun handelAction(action: UiAction, context: Context?) {
 //        println("\nonAction Called($action) at ${System.currentTimeMillis()}")
@@ -53,42 +67,22 @@ class MainVM: ViewModel(), MainApplication.AppCompanion {
                 }
             }
             is GetEstimation -> if(onFragment == Fragment.QueryFrag) when {
-                action.location.isBlank() -> context?.makeToast("Location is Blank!")
-                action.atDate == null -> context?.makeToast("Enter the Date!")
-                action.atTime == null -> context?.makeToast("Enter the Time!")
+                action.query.place.isBlank() -> context?.makeToast("Location is Blank!")
+                action.query.timeInMillis == 0L -> context?.makeToast("Enter the Date Time!")
+//                    query.atDate == null -> context?.makeToast("Enter the Date!")
+//                    query.atTime == null -> context?.makeToast("Enter the Time!")
                 else -> {
                     isWaitingForResult = true
                     onFragment = Fragment.LoadingFrag
-                    val queryDateTime = Calendar.getInstance()
-                    val queryDate = Date(action.atDate)
-                    queryDateTime.set(
-                        queryDate.year, queryDate.month, queryDate.day,
-                        action.atTime.first, action.atTime.second, 0
-                    )
-                    val query = Query(action.location, queryDateTime.timeInMillis)
+                    queryLastMade = action.query
+                    AppData.lastQuery = queryLastMade
 
-                    // Send of queryDateTime to server and onResult
                     coScope.launch {
+                        estimationResult = processQuery(queryLastMade)
                         delay(2000)
-                        isEstimationSuccessful = action.location == "PES Canteen"
                         isWaitingForResult = false
-
-                        if(isEstimationSuccessful) {
+                        if(estimationResult is EstSuccess) {
                             delay(1500)
-                            val qrHr = action.atTime.first % 4
-                            val crowdPic = crowdPicList[qrHr]
-                            val picMessage = "${action.location} at ${action.atTime.first%12}am"
-                            val crowdDens = crowdDenseList[qrHr]
-                            val timeToGo = if(qrHr == 0) "" else {
-                                val time = action.atTime.first + (4 - qrHr)
-                                val aPm = if(time < 12) "am" else "pm"
-                                "${time%12}$aPm"
-                            }
-
-                            estimationResult = EstResultState(
-                                PicOfPlace(crowdPic, picMessage),
-                                crowdDens, timeToGo, "2pm"
-                            )
                             onFragment = Fragment.ResultPage
                         }
                     }
@@ -98,4 +92,108 @@ class MainVM: ViewModel(), MainApplication.AppCompanion {
         }
     }
 
+    suspend fun getPhotoNear(location: String, strTime: String): Triple<String, Bitmap, Int>? {
+        CrowdApi.getPhotoNear(location, strTime).await()?.apply {
+            if(code() == 200) {
+                val recordTime = body()?.get("recordTime") as String
+                val photo = base642Image(body()?.get("photo") as String) ?: return null
+                val crowdInPhoto = (body()?.get("crowdInPhoto") as Double).toInt()
+                return Triple(recordTime, photo, crowdInPhoto)
+            }
+        }
+        return null
+    }
+
+    suspend fun processQuery(query: Query): EstResult {
+        val timeInStr = timeStamp2Str(query.timeInMillis)
+//        val timeInStr = timeStamp2Str(query.dateInMillis+(query.hour*3600000)+(query.minute*60000))
+        println("$query $timeInStr ${timeStamp2Str(query.timeInMillis)}")
+        CrowdApi.getCrowdSeq(query.place, timeInStr, 24).await()?.handle(
+            onResponse = { code, _, data ->
+                return when {
+                    code == 200 || code == 206 -> {
+                        val crowdAtSeq = data["crowdAtSeq"] as List<*>
+                        var tripleData: Triple<Date, Float, Date>? = null
+                        var shTrmLeastCrowdIs = 500f
+                        var oAllLeastCrowdAt = 0
+                        var oAllLeastCrowdIs = 500f
+                        crowdAtSeq.forEachIndexed { idx, crowdAt ->
+                            crowdAt as List<*>
+//                            println("$idx: $crowdAt")
+                            try{
+                                val crowdAcc = ((crowdAt)[0] as Double).toInt()
+                                if(idx < 10 && crowdAcc == 1) {
+                                    val avgCrowd = ((crowdAt)[5] as Double).toFloat()
+                                    if (avgCrowd < shTrmLeastCrowdIs) {
+                                        shTrmLeastCrowdIs = avgCrowd
+                                        val divTime = str2Time(crowdAt[1] as String)!!
+                                        val nRecordTime = str2Time(crowdAt[6] as String)!!
+                                        tripleData = Triple(divTime, avgCrowd, nRecordTime)
+                                    }
+                                }
+                                if(crowdAcc == 1) {
+                                    val avgCrowd = ((crowdAt)[5] as Double).toFloat()
+                                    if(avgCrowd < oAllLeastCrowdIs) {
+                                        oAllLeastCrowdAt = idx
+                                        oAllLeastCrowdIs = avgCrowd
+                                    }
+                                }
+                            }
+                            catch (e: Exception) { e.printStackTrace() }
+                        }
+
+                        if(tripleData != null) {
+//                            val nowCrowdSeq = crowdAtSeq[0] as List<*>
+//                            val nowCrowd = (nowCrowdSeq[5] as Double).toInt()
+                            val (recordTime ,nowPhoto, crowdInPhoto) = getPhotoNear(
+                                query.place, timeInStr
+                            )!!
+                            println("$recordTime $nowPhoto, $crowdInPhoto")
+                            val (divTime, avgCrowd, nRecTime) = tripleData!!
+                            val oAllLeastCrowdDiv = str2Time(
+                                (crowdAtSeq[oAllLeastCrowdAt] as List<*>)[1]
+                                        as String
+                            ) as Date
+                            val crowdStatus = when {
+                                crowdInPhoto <= shTrmLeastCrowdIs -> "Low"
+                                crowdInPhoto/shTrmLeastCrowdIs < 1.5f -> "Medium"
+                                else -> "High"
+                            }
+                            val diffInDiv = System.currentTimeMillis() - divTime.time
+                            val time2Go = if(diffInDiv in 0..3599999)
+                                "now"
+                            else "at ${time2OtStr(divTime)}"
+                            println("$diffInDiv $time2Go")
+
+                            val photoTime = str2Time(recordTime)!!
+                            val picDesc = "${query.place} at ${time2OtStr(photoTime)}"
+                            EstSuccess(
+                                query, BitPicOfPlace(nowPhoto.asImageBitmap(), picDesc),
+                                crowdInPhoto, crowdStatus, time2Go,
+                                time2OtStr(oAllLeastCrowdDiv),
+                            )
+                        }
+                        else  EstFailed(
+                            "No Enough Data!",
+                            "Try aging with, Some other Location!"
+                        )
+                    }
+                    code == 222 -> EstFailed(
+                        "No Data on Location!",
+                        "Try aging with, Some other Location!"
+                    )
+                    code == 404 -> EstFailed(
+                        "Invalid Location!",
+                        "Try aging with another Location!"
+                    )
+                    else -> EstFailed("Unexpected Error!")
+                }
+            },
+            onErrorHandling = { code, e ->
+                e.printStackTrace()
+                return EstFailed("Parsing Error!")
+            }
+        )
+        return EstFailed()
+    }
 }

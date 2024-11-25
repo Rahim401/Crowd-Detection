@@ -1,14 +1,12 @@
 package com.crowd.client.network
 
-import android.annotation.SuppressLint
-import com.crowd.client.utils.Colors
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.util.Base64
 import com.crowd.client.utils.RootGson
-import com.google.gson.GsonBuilder
-import kotlinx.coroutines.CoroutineScope
 import retrofit2.Response
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.io.File
 
 
 inline fun Response<Map<String, Any?>>.handle(
@@ -44,6 +42,24 @@ inline fun Response<Map<String, Any?>>.handle(
 ) = handle(onResponse, onResponse, onErrorHandling)
 
 
+fun getServerAddress(context: Context): String {
+    val obbDir = context.obbDir
+    val fileName = "ServerIp.txt"
+    val file = File(obbDir, fileName)
+
+    if(!obbDir.exists()) obbDir.mkdirs()
+    if(!file.exists()) {
+        file.createNewFile()
+        file.writeText("0.0.0.0")
+    }
+    return file.readText()
+}
+
+fun base642Image(encoded: String): Bitmap? {
+    val imageBytes = Base64.decode(encoded, Base64.DEFAULT)
+    return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+}
+
 val AreasInBangalore = setOf(
     "Cantonment", "Domlur", "Indiranagar", "Rajajinagar", "Malleswaram",
     "Pete", "Sadashivanagar", "Seshadripuram", "Shivajinagar", "Ulsoor",
@@ -59,3 +75,4 @@ val AreasInBangalore = setOf(
 //    "Nandini Layout", "Nayandahalli", "Rajajinagar", "Rajarajeshwari Nagar", "Vijayanagar",
 //    "Devanahalli", "Hoskote", "Bidadi", "Bannerghatta", "Hosur"
 )
+

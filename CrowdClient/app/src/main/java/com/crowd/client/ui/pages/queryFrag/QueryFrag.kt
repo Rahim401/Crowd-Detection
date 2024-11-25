@@ -12,6 +12,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -19,12 +20,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.crowd.client.network.CrowdApi
 import com.crowd.client.ui.pages.common.components.AppDateField
 import com.crowd.client.ui.pages.common.components.AppForm
+import com.crowd.client.ui.pages.common.components.AppSelectorField
 import com.crowd.client.ui.pages.common.components.AppTextField
 import com.crowd.client.ui.pages.common.components.AppTimeField
 import com.crowd.client.ui.pages.mainPage.components.Background
 import com.crowd.client.ui.theme.CrowdClientTheme
+import com.crowd.client.viewmodel.Query
 import java.util.Calendar
 import java.util.Locale
 
@@ -32,46 +36,51 @@ import java.util.Locale
 @Composable
 fun QueryFrag(
     modifier: Modifier = Modifier,
-    onGetEstimation: (String, Long?, Pair<Int, Int>?) -> Unit = { _, _, _ -> }
+    initialQuery: Query = Query.fromTime(),
+    availableLocations: List<String> = listOf(),
+    onGetEstimation: (Query) -> Unit = { _ -> }
 ) {
-    val now = Calendar.getInstance()
-    var location by remember { mutableStateOf("PES Canteen") }
     var dateState: DatePickerState? by remember {
         mutableStateOf(
             DatePickerState(
                 Locale.getDefault(),
-                now.timeInMillis
+                initialQuery.dateInMillis
             )
         )
     }
     var timeState: TimePickerState? by remember {
         mutableStateOf(
             TimePickerState(
-                now.get(Calendar.HOUR_OF_DAY),
-                now.get(Calendar.MINUTE),
+                initialQuery.hour,
+                initialQuery.minute,
                 false
             )
         )
     }
+    var location by remember { mutableStateOf(initialQuery.place) }
 
     AppForm(
         modifier, "Enter Location",
         "Get Estimation", onSubmit = {
-            onGetEstimation(
-                location, dateState?.selectedDateMillis,
-                timeState?.let { Pair(it.hour, it.minute) }
-            )
+            dateState?.selectedDateMillis?.let { dInMills ->
+                timeState?.let { tSt ->
+                    val query = Query(location, dInMills, tSt.hour, tSt.minute)
+                    onGetEstimation(query)
+                }
+            }
         }
     ) {
         Column(
             Modifier.padding(5.dp, 0.dp), Arrangement.spacedBy(20.dp),
             Alignment.CenterHorizontally
         ) {
-            AppTextField(
-                label = "Place", value = location,
+            AppSelectorField(
+                label = "Place", options = availableLocations,
                 modifier = Modifier.fillMaxWidth(),
-                onClear = { location = "" },
-                onValueChanged = { location = it }
+                value = location, onValueChanged = {
+                    if(it != null) location = availableLocations
+                        .getOrElse(it) { location }
+                }
             )
             AppDateField(
                 label = "Date", value = dateState,
@@ -99,8 +108,8 @@ private fun Preview() {
                 Modifier
                     .fillMaxWidth()
                     .wrapContentHeight()
-                    .align(Alignment.BottomCenter)
-            ) { location, date, time ->
+                    .align(Alignment.BottomCenter),
+            ) { query ->
 //                val f = SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss ", Locale.getDefault())
 //                println(f.format(dateTime.time))
             }

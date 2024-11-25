@@ -67,10 +67,10 @@ object ApiTest {
         println("${Colors.Blue}\nTesting /getCrowdSeq${Colors.Reset}")
         val areasInServer = getLocationInServer().toSet()
         val areasNotInServer = (AreasInBangalore - areasInServer).toList()
-        var place = areasInServer.random()
-        var atTime = timeStamp2Str()
+        var place: String; var atTime = timeStamp2Str()
 
         if(areasInServer.isNotEmpty()) {
+            place = areasInServer.random()
             CrowdApi.getCrowdSeq(place, atTime, 10).await()?.logApi(
                 title="On Proper Inputs", expCodes= listOf(200, 206, 222),
                 endpoint = "/getCrowdSeq", others = mapOf(
@@ -93,7 +93,7 @@ object ApiTest {
             )
         }
         if(areasNotInServer.isNotEmpty()) {
-            place = areasInServer.random()
+            place = areasNotInServer.random()
             atTime = timeStamp2Str()
             CrowdApi.getCrowdSeq(place, atTime).await()?.logApi(
                 title="On Invalid Location", expCode=404,
@@ -116,10 +116,11 @@ object ApiTest {
         println("${Colors.Blue}\nTesting /getGetPhotoNear${Colors.Reset}")
         val areasInServer = getLocationInServer().toSet()
         val areasNotInServer = (AreasInBangalore - areasInServer).toList()
-        var place = areasInServer.random(); var atTime = timeStamp2Str()
+        var place: String; var atTime = timeStamp2Str()
         var recordWith = "PhotoOnly"
 
         if(areasInServer.isNotEmpty()) {
+            place = areasInServer.random()
             CrowdApi.getPhotoNear(place, atTime).await()?.logApi(
                 title="On Proper Inputs", expCodes= listOf(200, 206, 222),
                 endpoint = "/getGetPhotoNear", others = mapOf(
@@ -191,6 +192,7 @@ fun main() {
 //        ApiTest.testGetLocation()
 //        ApiTest.testCreateLocation()
 //        ApiTest.testGetCrowdSeq()
+        CrowdApi.initialize("192.168.138.81")
         ApiTest.testAll()
 //        val reqData = PostCrowdData("Domlur", crowdAt = 10)
 //        val response = api.postCrowdAt(reqData)

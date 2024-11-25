@@ -23,12 +23,14 @@ import com.crowd.client.R
 import com.crowd.client.ui.pages.common.components.AppButton
 import com.crowd.client.ui.pages.mainPage.components.Background
 import com.crowd.client.ui.theme.CrowdClientTheme
+import com.crowd.client.viewmodel.EstFailed
+import com.crowd.client.viewmodel.EstResult
+import com.crowd.client.viewmodel.EstSuccess
 
 @Composable
 fun LoadingFrag(
-    modifier: Modifier = Modifier,
-    isLoading: Boolean = true,
-    isSuccessful: Boolean = false,
+    modifier: Modifier = Modifier, isLoading: Boolean = true,
+    result: EstResult = EstFailed("Can't Reach Server!"),
     onGoBack: () -> Unit = {}
 ) {
     Box(
@@ -44,14 +46,15 @@ fun LoadingFrag(
             modifier = Modifier.size(150.dp)
         )
         else {
+            val isSuccessful = result is EstSuccess
             val imageId = if (isSuccessful) R.drawable.sucess
             else R.drawable.failure
-            val text = if (isSuccessful)
-                "Crowd at Location \nis Estimated"
-            else "No details on Location\n to Estimate Crowd"
-            val message = if (isSuccessful)
-                "Please wait for details!"
-            else "Please try again with other location!"
+//            val text = if (isSuccessful)
+//                "Crowd at Location \nis Estimated"
+//            else "No details on Location\n to Estimate Crowd"
+//            val message = if (isSuccessful)
+//                "Please wait for details!"
+//            else "Please try again with other location!"
 
             Image(
                 painter = painterResource(id = imageId),
@@ -69,12 +72,13 @@ fun LoadingFrag(
                 Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = text, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(0.85f),
+                    text = result.message,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(0.85f),
                     style = MaterialTheme.typography.headlineLarge,
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    text = message,
+                    text = result.message2,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                         .copy(0.7f),
                     style = MaterialTheme.typography.titleMedium,
@@ -100,7 +104,6 @@ private fun Preview() {
         Box(Modifier.fillMaxSize()) {
             LoadingFrag(
                 Modifier.fillMaxSize(), true,
-                true
             )
         }
     }

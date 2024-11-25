@@ -12,6 +12,18 @@ import java.util.Locale
 private val timeFormat = SimpleDateFormat("yyyy-MM-dd' 'HH:mm:ss", Locale.getDefault())
 fun time2Str(time: Date = Date()): String = timeFormat.format(time)
 fun timeStamp2Str(time: Long = System.currentTimeMillis()): String = timeFormat.format(Date(time))
+fun str2Time(string: String): Date? = timeFormat.parse(string)
+fun str2TimeStamp(string: String): Long? = str2Time(string)?.time
+
+@SuppressLint("ConstantLocale")
+private val timeOtFormat = SimpleDateFormat("h:mma", Locale.getDefault())
+fun time2OtStr(time: Date = Date()): String = timeOtFormat.format(time)
+fun timeStamp2OtStr(time: Long = System.currentTimeMillis()): String = timeOtFormat.format(Date(time))
+
+@SuppressLint("ConstantLocale")
+private val sTimeFormat = SimpleDateFormat("yyyy-MM-dd' 'h:mma", Locale.getDefault())
+fun time2SStr(time: Date = Date()): String = sTimeFormat.format(time)
+fun timeStamp2SStr(time: Long = System.currentTimeMillis()): String = sTimeFormat.format(Date(time))
 
 val RootGson = GsonBuilder().serializeNulls().create()
 

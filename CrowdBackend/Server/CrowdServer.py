@@ -156,7 +156,7 @@ class GetPhotoNear(Resource):
 
             # Query the database for the nearest record with an image
             status, error, message, data = 0, "", "", {}
-            result = dataManager.getRecordNear(atLocation, atTime, recordWith)
+            result = dataManager.getRecordNearEx(atLocation, atTime)
             if result[0] < 0:
                 if result[0] == -1: status, error = 400, "No Proper Input!"
                 elif result[0] == -2: status, error = 404, "Location Unavailable!"
@@ -174,7 +174,7 @@ class GetPhotoNear(Resource):
                     status = 206
                     if photoPath: message = "Can't find Photo!"
                     else: message = "Done with no Photo!"
-                data = {"accCode": resCode, "recordTime": recordTime, "photo": encodedPhoto, "crowdInPhoto": crowdCount}
+                data = {"accCode": resCode, "recordTime": time2Str(recordTime), "photo": encodedPhoto, "crowdInPhoto": crowdCount}
             # print(atLocation, status, message, error)
             return fixAndRespond(status, message, error, data)
         except Exception as e:

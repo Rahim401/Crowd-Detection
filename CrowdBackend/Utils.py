@@ -68,8 +68,8 @@ def stampImage(type="red", **kwargs):
     fontScale, fontThick = 1, 2
     startTextPos, nextYIncr = (10, 70), 35
     image = None
-    imageShape = (854, 480)
-    imageRevShape = reversed((854, 480))
+    imageShape = (1280, 720)
+    imageRevShape = (720, 1280)
 
     if type not in ("red", "blue"):
         try:

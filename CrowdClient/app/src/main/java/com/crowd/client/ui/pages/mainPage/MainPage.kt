@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import com.crowd.client.viewmodel.EnterApp
-import com.crowd.client.viewmodel.EstResultState
 import com.crowd.client.viewmodel.Fragment
 import com.crowd.client.viewmodel.GetEstimation
 import com.crowd.client.viewmodel.GoBack
@@ -30,14 +29,19 @@ import com.crowd.client.ui.pages.startFrag.QueryFrag
 import com.crowd.client.ui.pages.startFrag.StartFrag
 import com.crowd.client.ui.pages.startFrag.UserFrag
 import com.crowd.client.ui.theme.CrowdClientTheme
+import com.crowd.client.viewmodel.EstFailed
+import com.crowd.client.viewmodel.EstResult
+import com.crowd.client.viewmodel.EstSuccess
+import com.crowd.client.viewmodel.Query
 
 @Composable
 fun MainPage(
     modifier: Modifier = Modifier,
     onFragment: Fragment = Fragment.UserFrag,
     isWaitingForResult: Boolean = true,
-    isEstimationSuccessful: Boolean = false,
-    estimationResult: EstResultState? = null,
+    estimationResult: EstResult = EstFailed(),
+    initialQuery: Query = Query.fromTime(),
+    availableLocations: List<String> = listOf(),
     onAction: (UiAction) -> Unit = {}
 ) {
     Box(modifier) {
@@ -62,21 +66,19 @@ fun MainPage(
                         onAction(SaveUser(user))
                     }
 
-                    Fragment.QueryFrag -> QueryFrag(formFragMod) { place, date, time ->
-                        onAction(GetEstimation(place, date, time))
-                    }
+                    Fragment.QueryFrag -> QueryFrag(
+                        formFragMod, initialQuery, availableLocations
+                    ) { query -> onAction(GetEstimation(query)) }
 
                     Fragment.LoadingFrag -> LoadingFrag(
                         Modifier.fillMaxSize(), isWaitingForResult,
-                        isEstimationSuccessful
+                        estimationResult
                     ) { onAction(GoBack) }
 
-                    Fragment.ResultPage -> if(estimationResult != null)
-                        EstimationFrag(
-                            Modifier.fillMaxSize(), estimationResult.picData,
-                            estimationResult.crowdIs, estimationResult.timeToGo,
-                            estimationResult.leastCrowdAt
-                        ) { onAction(GoBack) }
+                    Fragment.ResultPage -> EstimationFrag(
+                        Modifier.fillMaxSize(), estimationResult as?
+                                EstSuccess ?: EstSuccess()
+                    ) { onAction(GoBack) }
                 }
             }
         }
@@ -93,9 +95,7 @@ private fun Preview() {
     CrowdClientTheme {
         MainPage(
             Modifier.fillMaxSize(), viewModel.onFragment,
-            viewModel.isWaitingForResult,
-            viewModel.isEstimationSuccessful,
-            viewModel.estimationResult,
+            viewModel.isWaitingForResult, viewModel.estimationResult,
             onAction = { viewModel.handelAction(it, context) }
         )
     }

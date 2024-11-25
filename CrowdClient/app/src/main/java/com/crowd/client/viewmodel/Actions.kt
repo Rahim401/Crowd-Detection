@@ -6,9 +6,5 @@ sealed class UiAction
 
 data object EnterApp: UiAction()
 data class SaveUser(val user: User): UiAction()
-data class GetEstimation(
-    val location: String,
-    val atDate: Long?,
-    val atTime: Pair<Int, Int>?
-): UiAction()
+data class GetEstimation(val query: Query): UiAction()
 data object GoBack: UiAction()

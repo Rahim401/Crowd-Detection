@@ -1,5 +1,6 @@
 package com.crowd.client.ui.pages.common.components
 
+import android.location.Location
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -20,7 +21,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.DatePickerState
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -49,6 +53,7 @@ import java.util.Locale
 fun AppField(
     label: String, value: String,
     modifier: Modifier = Modifier,
+    needClearButton: Boolean = true,
     onClear: () -> Unit = {},
     onEdit: () -> Unit = {},
 ) {
@@ -78,7 +83,7 @@ fun AppField(
                     ),
             )
 
-            AnimatedVisibility(
+            if(needClearButton) AnimatedVisibility(
                 value.isNotEmpty(),
                 enter = fadeIn(), exit = fadeOut(),
                 modifier = Modifier.padding(start = 5.dp)
@@ -99,7 +104,9 @@ fun AppField(
                 )
             }
         }
-        Column(modifier = Modifier.fillMaxWidth().height(1.dp)) {
+        Column(modifier = Modifier
+            .fillMaxWidth()
+            .height(1.dp)) {
             AnimatedVisibility(
                 value.isBlank(), Modifier,
                 enter = fadeIn(), exit = fadeOut(),
@@ -159,7 +166,9 @@ fun AppTextField(
                 )
             }
         }
-        Column(modifier = Modifier.fillMaxWidth().height(1.dp)) {
+        Column(modifier = Modifier
+            .fillMaxWidth()
+            .height(1.dp)) {
             AnimatedVisibility(
                 value.isBlank(), Modifier,
                 enter = fadeIn(), exit = fadeOut(),
@@ -189,7 +198,7 @@ fun AppTimeField(
         "${it.hour % 12}:${it.minute} " +
                 if(it.hour < 12) "AM" else "PM"
     } ?: ""
-    AppField(label, textTime, modifier, onClear) { showPicker = true }
+    AppField(label, textTime, modifier, onClear = onClear) { showPicker = true }
 }
 
 
@@ -217,8 +226,30 @@ fun AppDateField(
     val textDate = value?.selectedDateMillis?.let {
         dateFormat.format(Date(it))
     } ?: ""
-    AppField(label, textDate, modifier, onClear) { showPicker = true }
+    AppField(label, textDate, modifier, onClear = onClear) { showPicker = true }
 }
+
+@Composable
+fun AppSelectorField(
+    label: String, modifier: Modifier = Modifier,
+    options: List<String> = listOf(), value: String = "",
+    onClear: () -> Unit = {}, onValueChanged: (Int?) -> Unit = {},
+) {
+    var showSelector by remember { mutableStateOf(false) }
+    if(showSelector && options.size > 1) AppSelectorDialog(
+        title = "Select a $label", options = options,
+        onCancel = { showSelector = false }, onSelected = {
+            onValueChanged(it)
+            showSelector = false
+        }
+    )
+    AppField(
+        label, value,
+        modifier, false, onClear
+    ) { showSelector = true }
+}
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Preview
@@ -232,6 +263,17 @@ private fun Preview() {
                 .padding(30.dp),
             Arrangement.spacedBy(10.dp), Alignment.CenterHorizontally
         ) {
+            Box {
+                val options = listOf("PES Canteen", "Bangalore Palace", "Acharya Canteen", "TN Sathankulam")
+                var value by remember { mutableStateOf(0) }
+                AppSelectorField(
+                    label = "Place", value = options.getOrElse(value) {
+                        "Invalid Location!"
+                    },
+                    options = options,
+                    onValueChanged = { it?.let { value = it } }
+                )
+            }
             Box {
                 var value by remember { mutableStateOf("Mugesh Ravichandran") }
                 AppField(

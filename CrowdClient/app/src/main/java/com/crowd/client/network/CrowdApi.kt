@@ -14,51 +14,59 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object CrowdApi: MainApplication.AppCompanion {
-    private const val BaseURL = "http://192.168.138.81:5000"
-    private val retrofit: Retrofit by lazy {
-        Retrofit.Builder()
-            .baseUrl(BaseURL).client(httpClient)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-    }
-    private val httpClient: OkHttpClient by lazy {
-        OkHttpClient.Builder()
-            .connectTimeout(2, TimeUnit.SECONDS)
-            .readTimeout(5, TimeUnit.SECONDS)
-            .build()
-    }
-    private val coScope = CoroutineScope(Dispatchers.IO)
-    private val api: CrowdApiSchema by lazy { retrofit.create(CrowdApiSchema::class.java) }
-    var availableLocations: List<String>? = null
-        private set
+//    private var serverAddress = "0.0.0.0"
+    //    private val serverUrl get() = "http://$serverAddress:5000"
+//    private const val DefURL = "http://0.0.0.0:5000"
+    //    private var retrofit: Retrofit? = null
+//    private var httpClient: OkHttpClient? = null
+    private var api: CrowdApiSchema? = null
+    val coScope = CoroutineScope(Dispatchers.IO)
+    var availableLocations: List<String>? = null; private set
     fun isServerReachable() = availableLocations != null
     fun checkIsServerReachable() {
         if(!isServerReachable()) coScope.launch {
-            availableLocations = getLocationInServer()
-            println(availableLocations)
+            getLocations().await()?.handle(
+                onResponse = { _, _, d ->
+                    availableLocations = d["allLocations"] as? List<String>
+                }
+            )
         }
     }
 
     override fun initialize(context: Context) {
         super.initialize(context)
+        initialize(getServerAddress(context))
+    }
+    fun initialize(serverAddress: String) {
+        val serverUrl = "http://$serverAddress:5000"
+        val httpClient = OkHttpClient.Builder()
+            .connectTimeout(2, TimeUnit.SECONDS)
+            .readTimeout(5, TimeUnit.SECONDS)
+            .build()
+        val retrofit = Retrofit.Builder()
+            .baseUrl(serverUrl).client(httpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+        api = retrofit.create(CrowdApiSchema::class.java)
         checkIsServerReachable()
+        println(serverUrl)
     }
     override fun finish() {
         super.finish()
         availableLocations = null
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
+
     suspend fun getLocationInServer(): List<String> {
         getLocations().await()?.handle(
             onResponse = { _, _, data ->
                 @Suppress("UNCHECKED_CAST")
-                return data["allLocations"] as? List<String>
+                availableLocations = data["allLocations"] as? List<String>
                     ?: listOf()
+                return availableLocations ?: listOf()
             },
             onErrorHandling = { _, _ -> }
         )
-        availableLocations = null
         return listOf()
     }
 
@@ -69,7 +77,7 @@ object CrowdApi: MainApplication.AppCompanion {
 //    }
 
     // /getLocations (GET)
-    suspend fun getLocations() = coScope.async { nullOnE { api.getLocations() } }
+    suspend fun getLocations() = coScope.async { nullOnE { api?.getLocations() } }
 //    fun getLocations(
 //        onResponse: (Int, String, Map<String, Any?>) -> Unit = { _, _, _ ->},
 //        onErrorHandling: (Int, Exception) -> Unit = { _, _ -> }
@@ -77,7 +85,7 @@ object CrowdApi: MainApplication.AppCompanion {
 
     // /createLocation (POST)
     suspend fun createLocation(place: String, address: String) =
-        coScope.async { nullOnE { api.createLocation(Location(place, address)) } }
+        coScope.async { nullOnE { api?.createLocation(Location(place, address)) } }
 //    fun createLocation(
 //        place: String, address: String,
 //        onResponse: (Int, String, Map<String, Any?>) -> Unit = { _, _, _ ->},
@@ -90,7 +98,7 @@ object CrowdApi: MainApplication.AppCompanion {
         message: String = "No Message!", photoPath: String? = null, crowdAt: Int = -1
     ) = coScope.async {
         nullOnE {
-            api.postCrowdAt(PostCrowdData(
+            api?.postCrowdAt(PostCrowdData(
                 atLocation, atTime, fromMail,
                 message, photoPath, crowdAt
             ))
@@ -108,7 +116,7 @@ object CrowdApi: MainApplication.AppCompanion {
 
     // /getEstimation (GET)
     suspend fun getEstimation(atLocation: String, atTime: String) =
-        coScope.async { nullOnE { api.getEstimation(atLocation, atTime) } }
+        coScope.async { nullOnE { api?.getEstimation(atLocation, atTime) } }
 //    fun getEstimation(
 //        atLocation: String, atTime: String,
 //        onResponse: (Int, String, Map<String, Any?>) -> Unit = { _, _, _ ->},
@@ -118,7 +126,7 @@ object CrowdApi: MainApplication.AppCompanion {
 
     // /getPhotoNear (GET)
     suspend fun getPhotoNear(atLocation: String, atTime: String, recordWith: String = "PhotoOnly") =
-        coScope.async { nullOnE { api.getPhotoNear(atLocation, atTime, recordWith) } }
+        coScope.async { nullOnE { api?.getPhotoNear(atLocation, atTime, recordWith) } }
 //    fun getPhotoNear(
 //        atLocation: String, atTime: String, recordWith: String = "PhotoOnly",
 //        onResponse: (Int, String, Map<String, Any?>) -> Unit = { _, _, _ ->},
@@ -131,7 +139,7 @@ object CrowdApi: MainApplication.AppCompanion {
 
     // /getCrowdSeq (GET)
     suspend fun getCrowdSeq(atLocation: String, atTime: String, noOfSeq: Int = 4) =
-        coScope.async { nullOnE { api.getCrowdSeq(atLocation, atTime, noOfSeq) } }
+        coScope.async { nullOnE { api?.getCrowdSeq(atLocation, atTime, noOfSeq) } }
 //    fun getCrowdSeq(
 //        atLocation: String, atTime: String, noOfSeq: Int = 4,
 //        onResponse: (Int, String, Map<String, Any?>) -> Unit = { _, _, _ ->},
